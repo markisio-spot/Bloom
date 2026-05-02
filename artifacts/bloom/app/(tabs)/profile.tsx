@@ -30,7 +30,7 @@ import CoinIcon from "@/components/CoinIcon";
 
 const SKIN_TONES = ["#FDDBB4", "#F5C5A3", "#E8A87C", "#C68642", "#8D5524", "#4A2912"];
 const HAIR_COLORS = ["#1B3A6B", "#4A2912", "#8B4513", "#D4AC2B", "#F5C518", "#E0E0E0", "#FF4444"];
-const HAIR_STYLES = ["short", "long", "curly", "bun", "spiky"];
+const HAIR_STYLES = ["short", "long", "ponytail", "curly", "bun", "spiky"];
 const EYE_COLORS = ["#1B3A6B", "#4A2912", "#22C55E", "#3B82F6", "#9CA3AF"];
 const EXPRESSIONS = ["happy", "cool", "studious", "excited", "calm"];
 const CLOTHINGS = ["casual", "uniform", "sporty", "formal", "creative"];

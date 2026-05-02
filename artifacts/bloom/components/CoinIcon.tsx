@@ -14,30 +14,42 @@ interface CoinIconProps {
 export function CoinSvg({ size = 20 }: { size?: number }) {
   const colors = useColors();
   const r = size / 2;
-  const fr = r * 0.52;
 
-  const petalPath = (angle: number) => {
-    const rad = (angle * Math.PI) / 180;
-    const petal = fr * 0.4;
-    const cx = r + Math.cos(rad) * petal * 1.15;
-    const cy = r + Math.sin(rad) * petal * 1.15;
-    return `M ${r} ${r} C ${r + Math.cos(rad - 0.85) * petal * 1.6} ${r + Math.sin(rad - 0.85) * petal * 1.6} ${r + Math.cos(rad + 0.85) * petal * 1.6} ${r + Math.sin(rad + 0.85) * petal * 1.6} ${cx} ${cy} Z`;
-  };
+  // Rose petal pointing upward from origin
+  const oph = r * 0.64;  // outer petal half-height
+  const opw = r * 0.25;  // outer petal half-width
+  const iph = r * 0.43;  // inner petal half-height
+  const ipw = r * 0.18;  // inner petal half-width
 
-  const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+  const outerPetal = `M 0 0 C ${opw} ${-oph * 0.1} ${opw * 0.6} ${-oph * 0.78} 0 ${-oph} C ${-opw * 0.6} ${-oph * 0.78} ${-opw} ${-oph * 0.1} 0 0 Z`;
+  const innerPetal = `M 0 0 C ${ipw} ${-iph * 0.1} ${ipw * 0.6} ${-iph * 0.78} 0 ${-iph} C ${-ipw * 0.6} ${-iph * 0.78} ${-ipw} ${-iph * 0.1} 0 0 Z`;
+
+  const col = colors.primary;
 
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* Gold coin body */}
       <Circle cx={r} cy={r} r={r - 0.5} fill="#F5C518" />
-      <Circle cx={r} cy={r} r={r * 0.8} fill="#E8B008" />
-      <Circle cx={r} cy={r} r={r * 0.74} fill="#F5C518" />
-      <G>
-        {angles.map((a) => (
-          <Path key={a} d={petalPath(a)} fill={colors.primary} opacity={0.88} />
-        ))}
-        <Circle cx={r} cy={r} r={fr * 0.28} fill={colors.primary} />
-        <Circle cx={r} cy={r} r={fr * 0.13} fill="rgba(255,255,255,0.3)" />
-      </G>
+      <Circle cx={r} cy={r} r={r * 0.82} fill="#E8B008" />
+      <Circle cx={r} cy={r} r={r * 0.76} fill="#F5C518" />
+
+      {/* Rose — 5 outer petals */}
+      {[0, 72, 144, 216, 288].map((a) => (
+        <G key={`op${a}`} transform={`translate(${r},${r}) rotate(${a})`}>
+          <Path d={outerPetal} fill={col} opacity={0.65} />
+        </G>
+      ))}
+
+      {/* Rose — 5 inner petals, rotated 36° */}
+      {[36, 108, 180, 252, 324].map((a) => (
+        <G key={`ip${a}`} transform={`translate(${r},${r}) rotate(${a})`}>
+          <Path d={innerPetal} fill={col} opacity={0.88} />
+        </G>
+      ))}
+
+      {/* Rose centre bud */}
+      <Circle cx={r} cy={r} r={r * 0.14} fill={col} />
+      <Circle cx={r} cy={r} r={r * 0.07} fill="rgba(255,255,255,0.4)" />
     </Svg>
   );
 }
