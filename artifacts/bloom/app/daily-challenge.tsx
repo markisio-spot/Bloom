@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import CoinIcon from "@/components/CoinIcon";
 
 interface ChallengeQuestion {
   id: string;
@@ -107,10 +108,7 @@ export default function DailyChallengeScreen() {
         <View style={styles.resultBody}>
           {coinsEarned > 0 && (
             <View style={[styles.coinsRow, { backgroundColor: colors.gold + "15", borderColor: colors.gold }]}>
-              <Feather name="star" size={22} color={colors.gold} />
-              <Text style={[styles.coinsText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-                +{coinsEarned} coins earned!
-              </Text>
+              <CoinIcon size={26} count={`+${coinsEarned} coins earned!`} textStyle={{ color: colors.primary, fontSize: 18 }} />
             </View>
           )}
           <Pressable
@@ -165,10 +163,7 @@ export default function DailyChallengeScreen() {
             Daily Challenge
           </Text>
           <View style={[styles.rewardBadge, { backgroundColor: colors.gold + "20" }]}>
-            <Feather name="star" size={14} color={colors.gold} />
-            <Text style={[styles.rewardText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-              {challenge.coinReward}
-            </Text>
+            <CoinIcon size={18} count={challenge.coinReward} textStyle={{ color: colors.primary, fontSize: 14 }} />
           </View>
         </View>
         <View style={styles.progressPills}>

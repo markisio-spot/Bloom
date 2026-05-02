@@ -3,20 +3,21 @@ import { db } from "@workspace/db";
 import {
   dailyChallengesTable,
   challengeCompletionsTable,
+  subjectProgressTable,
   usersTable,
 } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth.js";
 
 const router = Router();
 
-const SUBJECTS = ["math", "grammar", "history", "geography", "french", "spanish", "italian"];
+const FALLBACK_SUBJECTS = ["math", "grammar", "history", "geography", "french", "spanish", "italian"];
 
-async function generateDailyChallenge(date: string) {
-  const subject = SUBJECTS[new Date(date).getDate() % SUBJECTS.length];
-  const prompt = `Generate a daily challenge for the Bloom learning app. Subject: "${subject}".
-Create a mini-quiz with 3 questions. Return JSON ONLY (no markdown):
+async function generateDailyChallenge(date: string, subject: string, level: number) {
+  const levelHint = level > 1 ? ` Target difficulty: grade ${level}.` : "";
+  const prompt = `Generate a personalized daily challenge for the Bloom learning app. Subject: "${subject}".${levelHint}
+Create a mini-quiz with 3 questions based on this subject at the appropriate level. Return JSON ONLY (no markdown):
 {
   "title": "<engaging challenge title>",
   "description": "<1 sentence description>",
@@ -29,13 +30,29 @@ Create a mini-quiz with 3 questions. Return JSON ONLY (no markdown):
       "options": ["<a>", "<b>", "<c>", "<d>"],
       "correctAnswer": "<correct option text>",
       "pairs": null
+    },
+    {
+      "id": "q2",
+      "question": "<question>",
+      "type": "multiple_choice",
+      "options": ["<a>", "<b>", "<c>", "<d>"],
+      "correctAnswer": "<correct option text>",
+      "pairs": null
+    },
+    {
+      "id": "q3",
+      "question": "<question>",
+      "type": "multiple_choice",
+      "options": ["<a>", "<b>", "<c>", "<d>"],
+      "correctAnswer": "<correct option text>",
+      "pairs": null
     }
   ]
 }`;
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-5-mini",
-    max_completion_tokens: 800,
+    model: "gpt-4o-mini",
+    max_completion_tokens: 900,
     messages: [
       { role: "system", content: "You are a lesson generator. Respond with valid JSON only." },
       { role: "user", content: prompt },
@@ -54,7 +71,7 @@ Create a mini-quiz with 3 questions. Return JSON ONLY (no markdown):
   const [challenge] = await db.insert(dailyChallengesTable).values({
     date,
     subject,
-    title: data.title ?? "Daily Challenge",
+    title: data.title ?? `Daily ${subject.charAt(0).toUpperCase() + subject.slice(1)} Challenge`,
     description: data.description ?? `Complete today's ${subject} challenge`,
     coinReward: 50,
     questions: data.questions ?? [],
@@ -65,17 +82,44 @@ Create a mini-quiz with 3 questions. Return JSON ONLY (no markdown):
 
 router.get("/daily-challenge", authMiddleware, async (req: AuthRequest, res) => {
   const today = new Date().toISOString().slice(0, 10);
+  const userId = req.userId!;
 
-  let [challenge] = await db.select().from(dailyChallengesTable)
-    .where(eq(dailyChallengesTable.date, today)).limit(1);
+  const userProgress = await db
+    .select()
+    .from(subjectProgressTable)
+    .where(eq(subjectProgressTable.userId, userId))
+    .orderBy(desc(subjectProgressTable.lastActivityAt))
+    .limit(5);
+
+  let challengeSubject: string;
+  let challengeLevel = 1;
+
+  if (userProgress.length > 0) {
+    const top = userProgress[0];
+    challengeSubject = top.subject;
+    challengeLevel = top.currentLevel;
+  } else {
+    challengeSubject = FALLBACK_SUBJECTS[new Date(today).getDate() % FALLBACK_SUBJECTS.length] ?? "math";
+  }
+
+  let [challenge] = await db
+    .select()
+    .from(dailyChallengesTable)
+    .where(
+      and(
+        eq(dailyChallengesTable.date, today),
+        eq(dailyChallengesTable.subject, challengeSubject)
+      )
+    )
+    .limit(1);
 
   if (!challenge) {
-    challenge = await generateDailyChallenge(today);
+    challenge = await generateDailyChallenge(today, challengeSubject, challengeLevel);
   }
 
   const [completion] = await db.select().from(challengeCompletionsTable)
     .where(and(
-      eq(challengeCompletionsTable.userId, req.userId!),
+      eq(challengeCompletionsTable.userId, userId),
       eq(challengeCompletionsTable.challengeId, challenge.id)
     )).limit(1);
 

@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import CoinIcon from "@/components/CoinIcon";
 
 const RANK_COLORS = ["#F59E0B", "#9CA3AF", "#B45309"];
 const RANK_ICONS: Record<number, "award"> = { 0: "award", 1: "award", 2: "award" };
@@ -132,10 +133,7 @@ export default function LeaderboardScreen() {
                     {entry.displayName}
                   </Text>
                   <View style={styles.animalCountRow}>
-                    <Feather name="heart" size={12} color={colors.gold} />
-                    <Text style={[styles.animalCountText, { color: colors.gold, fontFamily: "Inter_600SemiBold" }]}>
-                      {entry.animalCount}
-                    </Text>
+                    <CoinIcon size={14} count={entry.coins} textStyle={{ color: colors.gold, fontSize: 12 }} />
                   </View>
                 </View>
               ))}

@@ -25,22 +25,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { CartoonAvatar, type AvatarData } from "@/components/CartoonAvatar";
+import CoinIcon from "@/components/CoinIcon";
 
 const SKIN_TONES = ["#FDDBB4", "#F5C5A3", "#E8A87C", "#C68642", "#8D5524", "#4A2912"];
 const HAIR_COLORS = ["#1B3A6B", "#4A2912", "#8B4513", "#D4AC2B", "#F5C518", "#E0E0E0", "#FF4444"];
+const HAIR_STYLES = ["short", "long", "curly", "bun", "spiky"];
 const EYE_COLORS = ["#1B3A6B", "#4A2912", "#22C55E", "#3B82F6", "#9CA3AF"];
 const EXPRESSIONS = ["happy", "cool", "studious", "excited", "calm"];
 const CLOTHINGS = ["casual", "uniform", "sporty", "formal", "creative"];
-
-interface AvatarData {
-  skinTone: string;
-  hairColor: string;
-  hairStyle: string;
-  eyeColor: string;
-  clothing: string;
-  accessory: string;
-  expression: string;
-}
 
 const DEFAULT_AVATAR: AvatarData = {
   skinTone: "#FDDBB4",
@@ -51,54 +44,6 @@ const DEFAULT_AVATAR: AvatarData = {
   accessory: "none",
   expression: "happy",
 };
-
-function AvatarPreview({ avatar, size = 80 }: { avatar: AvatarData; size?: number }) {
-  const expressionMap: Record<string, string> = {
-    happy: ":)",
-    cool: "B)",
-    studious: "=)",
-    excited: ":D",
-    calm: ":|",
-  };
-
-  return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: avatar.skinTone,
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-        }}
-      >
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: size * 0.45,
-            backgroundColor: avatar.hairColor,
-            borderTopLeftRadius: size / 2,
-            borderTopRightRadius: size / 2,
-          }}
-        />
-        <View style={{ position: "absolute", top: size * 0.35, alignItems: "center", gap: size * 0.05 }}>
-          <View style={{ flexDirection: "row", gap: size * 0.12 }}>
-            <View style={{ width: size * 0.12, height: size * 0.12, borderRadius: size * 0.06, backgroundColor: avatar.eyeColor }} />
-            <View style={{ width: size * 0.12, height: size * 0.12, borderRadius: size * 0.06, backgroundColor: avatar.eyeColor }} />
-          </View>
-          <Text style={{ color: avatar.skinTone === "#FDDBB4" || avatar.skinTone === "#F5C5A3" ? "#4A2912" : "#fff", fontSize: size * 0.16, fontFamily: "Inter_700Bold" }}>
-            {expressionMap[avatar.expression] ?? ":)"}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -179,7 +124,7 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.primary }]}>
-          <AvatarPreview avatar={avatar} size={88} />
+          <CartoonAvatar avatar={avatar} size={72} />
           <View style={styles.headerInfo}>
             {editingName ? (
               <View style={styles.editNameRow}>
@@ -210,12 +155,7 @@ export default function ProfileScreen() {
               @{displayUser?.username}
             </Text>
             <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Feather name="star" size={14} color={colors.gold} />
-                <Text style={[styles.statValue, { color: colors.gold, fontFamily: "Inter_700Bold" }]}>
-                  {displayUser?.coins ?? 0}
-                </Text>
-              </View>
+              <CoinIcon size={16} count={displayUser?.coins ?? 0} textStyle={{ color: colors.gold, fontSize: 14 }} />
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Feather name="zap" size={14} color={colors.gold} />
@@ -270,7 +210,7 @@ export default function ProfileScreen() {
 
           <View style={styles.avatarBuilderCard}>
             <View style={styles.avatarPreviewRow}>
-              <AvatarPreview avatar={avatar} size={80} />
+              <CartoonAvatar avatar={avatar} size={80} />
               <Pressable
                 style={[styles.saveAvatarBtn, { backgroundColor: colors.primary }]}
                 onPress={handleSaveAvatar}
@@ -283,20 +223,15 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
+            {/* Skin Tone */}
             <View style={styles.builderRow}>
-              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-                Skin Tone
-              </Text>
+              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>Skin Tone</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.colorRow}>
                   {SKIN_TONES.map((tone) => (
                     <Pressable
                       key={tone}
-                      style={[
-                        styles.colorDot,
-                        { backgroundColor: tone },
-                        avatar.skinTone === tone && styles.colorDotSelected,
-                      ]}
+                      style={[styles.colorDot, { backgroundColor: tone }, avatar.skinTone === tone && styles.colorDotSelected]}
                       onPress={() => setAvatar({ ...avatar, skinTone: tone })}
                     />
                   ))}
@@ -304,20 +239,15 @@ export default function ProfileScreen() {
               </ScrollView>
             </View>
 
+            {/* Hair Color */}
             <View style={styles.builderRow}>
-              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-                Hair Color
-              </Text>
+              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>Hair Color</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.colorRow}>
                   {HAIR_COLORS.map((clr) => (
                     <Pressable
                       key={clr}
-                      style={[
-                        styles.colorDot,
-                        { backgroundColor: clr },
-                        avatar.hairColor === clr && styles.colorDotSelected,
-                      ]}
+                      style={[styles.colorDot, { backgroundColor: clr }, avatar.hairColor === clr && styles.colorDotSelected]}
                       onPress={() => setAvatar({ ...avatar, hairColor: clr })}
                     />
                   ))}
@@ -325,20 +255,41 @@ export default function ProfileScreen() {
               </ScrollView>
             </View>
 
+            {/* Hair Style */}
             <View style={styles.builderRow}>
-              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-                Eye Color
-              </Text>
+              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>Hair Style</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.tagRow}>
+                  {HAIR_STYLES.map((hs) => (
+                    <Pressable
+                      key={hs}
+                      style={[
+                        styles.optionTag,
+                        {
+                          backgroundColor: avatar.hairStyle === hs ? colors.primary : colors.card,
+                          borderColor: avatar.hairStyle === hs ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setAvatar({ ...avatar, hairStyle: hs })}
+                    >
+                      <Text style={[styles.tagText, { color: avatar.hairStyle === hs ? "#fff" : colors.primary, fontFamily: "Inter_400Regular" }]}>
+                        {hs}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            {/* Eye Color */}
+            <View style={styles.builderRow}>
+              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>Eye Color</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.colorRow}>
                   {EYE_COLORS.map((clr) => (
                     <Pressable
                       key={clr}
-                      style={[
-                        styles.colorDot,
-                        { backgroundColor: clr },
-                        avatar.eyeColor === clr && styles.colorDotSelected,
-                      ]}
+                      style={[styles.colorDot, { backgroundColor: clr }, avatar.eyeColor === clr && styles.colorDotSelected]}
                       onPress={() => setAvatar({ ...avatar, eyeColor: clr })}
                     />
                   ))}
@@ -346,10 +297,9 @@ export default function ProfileScreen() {
               </ScrollView>
             </View>
 
+            {/* Expression */}
             <View style={styles.builderRow}>
-              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-                Expression
-              </Text>
+              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>Expression</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.tagRow}>
                   {EXPRESSIONS.map((ex) => (
@@ -364,11 +314,34 @@ export default function ProfileScreen() {
                       ]}
                       onPress={() => setAvatar({ ...avatar, expression: ex })}
                     >
-                      <Text style={[
-                        styles.tagText,
-                        { color: avatar.expression === ex ? "#fff" : colors.primary, fontFamily: "Inter_400Regular" },
-                      ]}>
+                      <Text style={[styles.tagText, { color: avatar.expression === ex ? "#fff" : colors.primary, fontFamily: "Inter_400Regular" }]}>
                         {ex}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            {/* Clothing */}
+            <View style={styles.builderRow}>
+              <Text style={[styles.builderLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>Clothing</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.tagRow}>
+                  {CLOTHINGS.map((cl) => (
+                    <Pressable
+                      key={cl}
+                      style={[
+                        styles.optionTag,
+                        {
+                          backgroundColor: avatar.clothing === cl ? colors.primary : colors.card,
+                          borderColor: avatar.clothing === cl ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setAvatar({ ...avatar, clothing: cl })}
+                    >
+                      <Text style={[styles.tagText, { color: avatar.clothing === cl ? "#fff" : colors.primary, fontFamily: "Inter_400Regular" }]}>
+                        {cl}
                       </Text>
                     </Pressable>
                   ))}
@@ -396,15 +369,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                   <View style={[styles.progressBarOuter, { backgroundColor: colors.border }]}>
-                    <View
-                      style={[
-                        styles.progressBarInner,
-                        {
-                          backgroundColor: colors.primary,
-                          width: `${Math.min((p.highestScore ?? 0), 100)}%`,
-                        },
-                      ]}
-                    />
+                    <View style={[styles.progressBarInner, { backgroundColor: colors.primary, width: `${Math.min((p.highestScore ?? 0), 100)}%` }]} />
                   </View>
                   <Text style={[styles.progressStats, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
                     {p.lessonsCompleted} lessons · Best: {p.highestScore ?? 0}%
@@ -477,26 +442,14 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 14 },
   statDivider: { width: 1, height: 16, backgroundColor: "rgba(255,255,255,0.25)" },
   giftCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    marginBottom: 10,
+    flexDirection: "row", alignItems: "center", gap: 14,
+    marginHorizontal: 20, padding: 16, borderRadius: 16, borderWidth: 1.5, marginBottom: 10,
   },
   giftTitle: { fontSize: 15 },
   giftSubtitle: { fontSize: 12, marginTop: 2 },
   giftMsg: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: 20,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 10,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginHorizontal: 20, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 10,
   },
   giftMsgText: { fontSize: 13, flex: 1 },
   section: { paddingHorizontal: 20, marginBottom: 24 },
@@ -504,12 +457,8 @@ const styles = StyleSheet.create({
   avatarBuilderCard: { gap: 16 },
   avatarPreviewRow: { flexDirection: "row", alignItems: "center", gap: 20 },
   saveAvatarBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
   },
   saveAvatarText: { fontSize: 14 },
   builderRow: { gap: 8 },
@@ -533,15 +482,8 @@ const styles = StyleSheet.create({
   collectionEmoji: { fontSize: 32 },
   collectionName: { fontSize: 11, textAlign: "center", marginTop: 4 },
   logoutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    marginHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    marginTop: 8,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
+    marginHorizontal: 20, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, marginTop: 8,
   },
   logoutText: { fontSize: 15 },
 });

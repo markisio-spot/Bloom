@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import CoinIcon from "@/components/CoinIcon";
 
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
@@ -114,10 +115,7 @@ export default function ShopScreen() {
           </Text>
         </View>
         <View style={[styles.coinsBadge, { backgroundColor: colors.gold + "20" }]}>
-          <Feather name="star" size={16} color={colors.gold} />
-          <Text style={[styles.coinsText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-            {coins}
-          </Text>
+          <CoinIcon size={20} count={coins} textStyle={{ color: colors.primary, fontSize: 15 }} />
         </View>
       </View>
 
@@ -191,17 +189,8 @@ export default function ShopScreen() {
                         <Text style={[styles.ownedText, { fontFamily: "Inter_600SemiBold" }]}>Owned</Text>
                       </View>
                     ) : (
-                      <View style={[
-                        styles.costBadge,
-                        { backgroundColor: canAfford ? colors.gold + "20" : "#FEF2F2" },
-                      ]}>
-                        <Feather name="star" size={12} color={canAfford ? colors.gold : colors.wrong} />
-                        <Text style={[
-                          styles.costText,
-                          { color: canAfford ? colors.primary : colors.wrong, fontFamily: "Inter_600SemiBold" },
-                        ]}>
-                          {animal.cost}
-                        </Text>
+                      <View style={[styles.costBadge, { backgroundColor: canAfford ? colors.gold + "20" : "#FEF2F2" }]}>
+                        <CoinIcon size={14} count={animal.cost} textStyle={{ color: canAfford ? colors.primary : colors.wrong, fontSize: 12 }} />
                       </View>
                     )}
                   </Pressable>
@@ -226,10 +215,7 @@ export default function ShopScreen() {
                   {selectedAnimal.description}
                 </Text>
                 <View style={[styles.modalCost, { backgroundColor: colors.gold + "15" }]}>
-                  <Feather name="star" size={18} color={colors.gold} />
-                  <Text style={[styles.modalCostText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-                    {selectedAnimal.cost} coins
-                  </Text>
+                  <CoinIcon size={22} count={`${selectedAnimal.cost} coins`} textStyle={{ color: colors.primary, fontSize: 16 }} />
                   {coins < selectedAnimal.cost && (
                     <Text style={[styles.notEnoughText, { color: colors.wrong, fontFamily: "Inter_400Regular" }]}>
                       (need {selectedAnimal.cost - coins} more)

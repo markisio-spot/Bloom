@@ -35,6 +35,14 @@ Return a JSON object ONLY (no markdown fences) with this exact structure:
 
   const subjectPrompts: Record<Subject, Record<string, string>> = {
     math: {
+      mixed: `Generate a grade-${level} mixed math lesson with exactly 6 questions in this order:
+1. A multiple_choice arithmetic/algebra question (4 options, type "multiple_choice")
+2. A fill_blank equation with one blank (e.g. "3 + __ = 10", type "fill_blank", options: null)
+3. A multiple_choice word problem (real-world scenario, 4 options, type "multiple_choice")
+4. A fill_blank equation (type "fill_blank", options: null)
+5. A multiple_choice question testing a concept (type "multiple_choice")
+6. A fill_blank equation (type "fill_blank", options: null)
+Make them progressively harder and appropriate for grade ${level}. Set "pairs" to null for all.`,
       multiple_choice: `Generate 5 grade-${level} math problems (arithmetic, algebra, or geometry appropriate for the level). Each with 4 multiple choice options. Make them progressively harder.`,
       fill_blank: `Generate 5 grade-${level} math equations with a blank to fill in. For example "5 + __ = 12". Use type "fill_blank".`,
       word_problem: `Generate 3 grade-${level} math word problems. Use type "multiple_choice" with 4 options each.`,
@@ -58,37 +66,38 @@ Return a JSON object ONLY (no markdown fences) with this exact structure:
     maltese: {
       vocabulary: `Generate 6 Maltese vocabulary flashcard questions for grade ${level}. Maltese is the national language of Malta. Each question shows a Maltese word and asks for the English translation. Use type "multiple_choice".`,
       fill_blank: `Generate 5 Maltese fill-in-the-blank sentences. Use type "fill_blank".`,
-      matching: `Generate a matching exercise with 5 pairs of Maltese-English words. Use type "match" and set "pairs" to {left: "Maltese", right: "English"} objects.`,
-      writing: `Generate 4 writing exercises where the student writes a Maltese word or phrase. Use type "write".`,
-      speaking: `Generate 3 speaking exercises where the student reads a Maltese phrase aloud. Use type "speak". Set audioText to the Maltese phrases.`,
-      listening: `Generate 4 listening exercises where the student hears a Maltese phrase and picks the correct English translation. Use type "multiple_choice" with 4 options. Set audioText to the Maltese phrases.`,
+      matching: `Generate a matching exercise with 5 pairs of Maltese-English words. Use type "match" and "pairs" array.`,
+      writing: `Generate 4 writing exercises in Maltese. Provide English prompts. Use type "write".`,
+      speaking: `Generate 3 Maltese speaking exercises. Use type "speak". Set audioText to the Maltese phrases.`,
+      listening: `Generate 4 Maltese listening exercises. Use type "multiple_choice". Set audioText to the Maltese phrases.`,
     },
     italian: {
-      vocabulary: `Generate 6 Italian vocabulary flashcard questions for grade ${level}. Each question shows an Italian word and asks for the English translation. Use type "multiple_choice".`,
+      vocabulary: `Generate 6 Italian vocabulary flashcard questions for grade ${level}. Use type "multiple_choice".`,
       fill_blank: `Generate 5 Italian fill-in-the-blank sentences. Use type "fill_blank".`,
-      matching: `Generate a matching exercise with 5 pairs of Italian-English words. Use type "match" and set "pairs" to {left: "Italian", right: "English"} objects.`,
-      writing: `Generate 4 writing exercises where the student writes an Italian word or phrase. Use type "write".`,
-      speaking: `Generate 3 speaking exercises where the student reads an Italian phrase aloud. Use type "speak". Set audioText to the Italian phrases.`,
-      listening: `Generate 4 listening exercises where the student hears an Italian phrase and picks the correct English translation. Use type "multiple_choice" with 4 options. Set audioText to the Italian phrases.`,
+      matching: `Generate a matching exercise with 5 Italian-English pairs. Use type "match" and "pairs" array.`,
+      writing: `Generate 4 Italian writing exercises. Use type "write".`,
+      speaking: `Generate 3 Italian speaking exercises. Use type "speak". Set audioText to the Italian phrases.`,
+      listening: `Generate 4 Italian listening exercises. Use type "multiple_choice". Set audioText to the Italian phrases.`,
     },
     grammar: {
-      spelling: `Generate 5 spelling questions appropriate for grade ${level} English. Show a misspelled or correctly spelled word and ask if it's correct, or show the definition and ask to pick the correct spelling. Use type "multiple_choice" with 4 options.`,
-      punctuation: `Generate 5 punctuation exercises for grade ${level}. Show a sentence and ask which version has correct punctuation, or identify the punctuation error. Use type "multiple_choice".`,
-      parts_of_speech: `Generate 5 parts-of-speech exercises for grade ${level}. Identify nouns, verbs, adjectives, adverbs, etc. Use type "multiple_choice" with 4 options.`,
-      word_definitions: `Generate 5 word definition exercises for grade ${level} vocabulary. Show a word and ask for its definition, or show a definition and ask for the word. Use type "multiple_choice" with 4 options. Use vocabulary appropriate for grade ${level}.`,
+      spelling: `Generate 5 grade-${level} English spelling exercises. Show the word's definition or use it in a sentence, ask the student to choose the correct spelling. Use type "multiple_choice" with 4 options.`,
+      punctuation: `Generate 5 grade-${level} punctuation exercises. Show a sentence and ask what punctuation is missing or incorrect. Use type "multiple_choice".`,
+      parts_of_speech: `Generate 5 grade-${level} parts of speech exercises. Identify nouns, verbs, adjectives, etc. in sentences. Use type "multiple_choice".`,
+      word_definitions: `Generate 5 grade-${level} vocabulary/definition exercises. Show a word and ask for its meaning. Use type "multiple_choice" with 4 options.`,
     },
     history: {
-      reading: `Write a SHORT, engaging, story-like history reading passage for grade ${level} students (about 120-180 words). Make it vivid and narrative, like a story, not a textbook. Choose any interesting historical event or period. Then generate 4 comprehension questions about the IMPORTANT facts in the passage. Use type "multiple_choice" with 4 options. Put the story in "content", and questions in "questions".`,
+      reading: `Generate a history reading passage appropriate for grade ${level} (4-6 sentences covering an interesting historical event or person). Then create 4 comprehension questions in multiple_choice format (4 options each). Set "content" to the full reading passage.`,
     },
     geography: {
-      reading: `Write a SHORT, engaging, story-like geography reading passage for grade ${level} students (about 120-180 words). Make it vivid and interesting, like an adventure, not a textbook. Choose any interesting geographical feature, country, or natural phenomenon. Then generate 4 comprehension questions about the IMPORTANT facts. Use type "multiple_choice" with 4 options. Put the story in "content", and questions in "questions".`,
+      reading: `Generate a geography reading passage appropriate for grade ${level} (4-6 sentences about a country, landmark, or geographic feature). Then create 4 comprehension questions in multiple_choice format (4 options each). Set "content" to the reading passage.`,
     },
   };
 
-  const subjectMap = subjectPrompts[subject] ?? {};
-  const specificPrompt = subjectMap[exerciseType] ?? `Generate 5 grade-${level} exercises for "${subject}" subject, "${exerciseType}" type. Use appropriate question types.`;
+  const specificPrompt =
+    (subjectPrompts[subject] as Record<string, string>)[exerciseType] ??
+    `Generate 5 grade-${level} ${subject} questions using type "multiple_choice".`;
 
-  return baseInstructions + "\n\n" + specificPrompt;
+  return baseInstructions + "\n\nSpecific instructions:\n" + specificPrompt;
 }
 
 router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) => {
@@ -98,18 +107,21 @@ router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) =
     level?: number;
   };
 
-  if (!subject || !exerciseType || !level) {
-    res.status(400).json({ error: "subject, exerciseType, and level are required" });
+  if (!subject) {
+    res.status(400).json({ error: "subject is required" });
     return;
   }
 
-  const prompt = buildLessonPrompt(subject, exerciseType, level);
+  const type = exerciseType ?? (subject === "math" ? "mixed" : "multiple_choice");
+  const lvl = level ?? 5;
+
+  const prompt = buildLessonPrompt(subject, type, lvl);
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-5-mini",
+    model: "gpt-4o-mini",
     max_completion_tokens: 2000,
     messages: [
-      { role: "system", content: "You are a lesson generator for an educational app. Always respond with valid JSON only, no markdown, no code fences." },
+      { role: "system", content: "You are a lesson generator. Respond with valid JSON only, no markdown." },
       { role: "user", content: prompt },
     ],
   });
@@ -120,39 +132,34 @@ router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) =
     lesson = JSON.parse(raw);
   } catch {
     const match = raw.match(/\{[\s\S]*\}/);
-    lesson = match ? JSON.parse(match[0]) : { error: "Failed to generate lesson" };
+    lesson = match ? JSON.parse(match[0]) : {};
   }
 
   res.json(lesson);
 });
 
 router.post("/lessons/tts", authMiddleware, async (req: AuthRequest, res) => {
-  const { text, voice = "nova" } = req.body as {
-    text?: string;
-    voice?: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";
-  };
-
+  const { text, voice } = req.body as { text?: string; voice?: string };
   if (!text) {
     res.status(400).json({ error: "text is required" });
     return;
   }
 
-  const audioBuffer = await textToSpeech(text, voice ?? "nova", "mp3");
-  const base64 = Buffer.from(audioBuffer).toString("base64");
-  res.json({ audio: base64 });
+  const audioBuffer = await textToSpeech(text, (voice as "nova") ?? "nova");
+  const base64 = audioBuffer.toString("base64");
+  res.json({ audio: base64, mimeType: "audio/mpeg" });
 });
 
 router.post("/lessons/transcribe", authMiddleware, async (req: AuthRequest, res) => {
-  const { audio } = req.body as { audio?: string };
-
-  if (!audio) {
-    res.status(400).json({ error: "audio is required" });
+  const { audioBase64 } = req.body as { audioBase64?: string };
+  if (!audioBase64) {
+    res.status(400).json({ error: "audioBase64 is required" });
     return;
   }
 
-  const audioBuffer = Buffer.from(audio, "base64");
-  const text = await speechToText(audioBuffer, "wav");
-  res.json({ text });
+  const buffer = Buffer.from(audioBase64, "base64");
+  const transcript = await speechToText(buffer);
+  res.json({ transcript });
 });
 
 export default router;

@@ -13,11 +13,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
 const EXERCISE_MAP: Record<string, Array<{ key: string; label: string; desc: string; icon: string }>> = {
-  math: [
-    { key: "multiple_choice", label: "Multiple Choice", desc: "Pick the right answer", icon: "check-circle" },
-    { key: "fill_blank", label: "Fill in the Blank", desc: "Complete the equation", icon: "edit-3" },
-    { key: "word_problem", label: "Word Problems", desc: "Solve real-world math", icon: "book" },
-  ],
   languages: [
     { key: "vocabulary", label: "Vocabulary", desc: "Learn new words", icon: "grid" },
     { key: "fill_blank", label: "Fill in the Blank", desc: "Complete sentences", icon: "edit-3" },
@@ -41,10 +36,10 @@ const EXERCISE_MAP: Record<string, Array<{ key: string; label: string; desc: str
 };
 
 const LANGUAGES = [
-  { key: "french", label: "French", flag: "FR" },
-  { key: "spanish", label: "Spanish", flag: "ES" },
-  { key: "maltese", label: "Maltese", flag: "MT" },
-  { key: "italian", label: "Italian", flag: "IT" },
+  { key: "french", label: "French", flag: "🇫🇷" },
+  { key: "spanish", label: "Spanish", flag: "🇪🇸" },
+  { key: "maltese", label: "Maltese", flag: "🇲🇹" },
+  { key: "italian", label: "Italian", flag: "🇮🇹" },
 ];
 
 const SUBJECT_LABELS: Record<string, string> = {
@@ -73,6 +68,7 @@ export default function LessonPickerScreen() {
   const subjectKey = subject ?? "math";
   const exercises = EXERCISE_MAP[subjectKey] ?? [];
   const subjectColor = SUBJECT_COLORS[subjectKey] ?? colors.primary;
+  const isMath = subjectKey === "math";
   const needsLanguage = subjectKey === "languages";
   const needsLevel = subjectKey === "math" || subjectKey === "grammar";
 
@@ -83,6 +79,17 @@ export default function LessonPickerScreen() {
       level: String(selectedLevel),
     };
     router.push({ pathname: "/(tabs)/lesson", params });
+  };
+
+  const handleStartMath = () => {
+    router.push({
+      pathname: "/(tabs)/lesson",
+      params: {
+        subject: "math",
+        exerciseType: "mixed",
+        level: String(selectedLevel),
+      },
+    });
   };
 
   return (
@@ -99,111 +106,180 @@ export default function LessonPickerScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-          Choose Exercise
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-          Pick a type of exercise to practice
-        </Text>
 
-        {needsLanguage && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-              Language
+        {isMath ? (
+          <>
+            <Text style={[styles.title, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+              Math Lesson
             </Text>
-            <View style={styles.langRow}>
-              {LANGUAGES.map((lang) => (
-                <Pressable
-                  key={lang.key}
-                  style={[
-                    styles.langBtn,
-                    {
-                      backgroundColor: selectedLanguage === lang.key ? colors.primary : colors.card,
-                      borderColor: selectedLanguage === lang.key ? colors.primary : colors.border,
-                    },
-                  ]}
-                  onPress={() => setSelectedLanguage(lang.key)}
-                >
-                  <Text style={[styles.flagText, { fontFamily: "Inter_700Bold", color: selectedLanguage === lang.key ? colors.gold : colors.mutedForeground }]}>
-                    {lang.flag}
-                  </Text>
-                  <Text style={[
-                    styles.langLabel,
-                    {
-                      fontFamily: "Inter_500Medium",
-                      color: selectedLanguage === lang.key ? "#fff" : colors.primary,
-                    },
-                  ]}>
-                    {lang.label}
-                  </Text>
-                </Pressable>
-              ))}
+            <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+              Each session mixes multiple choice, fill-in-the-blank, and word problems automatically.
+            </Text>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                Grade Level
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.levelRow}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((lvl) => (
+                    <Pressable
+                      key={lvl}
+                      style={[
+                        styles.levelBtn,
+                        {
+                          backgroundColor: selectedLevel === lvl ? colors.primary : colors.card,
+                          borderColor: selectedLevel === lvl ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setSelectedLevel(lvl)}
+                    >
+                      <Text style={[
+                        styles.levelBtnText,
+                        {
+                          fontFamily: "Inter_600SemiBold",
+                          color: selectedLevel === lvl ? "#fff" : colors.primary,
+                        },
+                      ]}>
+                        {lvl}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
             </View>
-          </View>
-        )}
 
-        {needsLevel && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-              Grade Level
+            <View style={[styles.mathInfoCard, { backgroundColor: subjectColor + "10", borderColor: subjectColor + "30" }]}>
+              <View style={[styles.mathInfoIcon, { backgroundColor: subjectColor + "18" }]}>
+                <Feather name="shuffle" size={22} color={subjectColor} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.mathInfoTitle, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                  Mixed Lesson — 6 Questions
+                </Text>
+                <Text style={[styles.mathInfoDesc, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                  Multiple choice · Fill in the blank · Word problems
+                </Text>
+              </View>
+            </View>
+
+            <Pressable
+              style={[styles.startBtn, { backgroundColor: subjectColor }]}
+              onPress={handleStartMath}
+            >
+              <Feather name="play" size={20} color="#fff" />
+              <Text style={[styles.startBtnText, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
+                Start Lesson
+              </Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.title, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+              Choose Exercise
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.levelRow}>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((lvl) => (
+            <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+              Pick a type of exercise to practice
+            </Text>
+
+            {needsLanguage && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                  Language
+                </Text>
+                <View style={styles.langRow}>
+                  {LANGUAGES.map((lang) => (
+                    <Pressable
+                      key={lang.key}
+                      style={[
+                        styles.langBtn,
+                        {
+                          backgroundColor: selectedLanguage === lang.key ? colors.primary : colors.card,
+                          borderColor: selectedLanguage === lang.key ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setSelectedLanguage(lang.key)}
+                    >
+                      <Text style={styles.flagText}>{lang.flag}</Text>
+                      <Text style={[
+                        styles.langLabel,
+                        {
+                          fontFamily: "Inter_500Medium",
+                          color: selectedLanguage === lang.key ? "#fff" : colors.primary,
+                        },
+                      ]}>
+                        {lang.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {needsLevel && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                  Grade Level
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.levelRow}>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((lvl) => (
+                      <Pressable
+                        key={lvl}
+                        style={[
+                          styles.levelBtn,
+                          {
+                            backgroundColor: selectedLevel === lvl ? colors.primary : colors.card,
+                            borderColor: selectedLevel === lvl ? colors.primary : colors.border,
+                          },
+                        ]}
+                        onPress={() => setSelectedLevel(lvl)}
+                      >
+                        <Text style={[
+                          styles.levelBtnText,
+                          {
+                            fontFamily: "Inter_600SemiBold",
+                            color: selectedLevel === lvl ? "#fff" : colors.primary,
+                          },
+                        ]}>
+                          {lvl}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                Exercise Type
+              </Text>
+              <View style={styles.exerciseList}>
+                {exercises.map((ex) => (
                   <Pressable
-                    key={lvl}
-                    style={[
-                      styles.levelBtn,
-                      {
-                        backgroundColor: selectedLevel === lvl ? colors.primary : colors.card,
-                        borderColor: selectedLevel === lvl ? colors.primary : colors.border,
-                      },
-                    ]}
-                    onPress={() => setSelectedLevel(lvl)}
+                    key={ex.key}
+                    style={[styles.exCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => handleExercise(ex.key)}
                   >
-                    <Text style={[
-                      styles.levelBtnText,
-                      {
-                        fontFamily: "Inter_600SemiBold",
-                        color: selectedLevel === lvl ? "#fff" : colors.primary,
-                      },
-                    ]}>
-                      {lvl}
-                    </Text>
+                    <View style={[styles.exIcon, { backgroundColor: subjectColor + "18" }]}>
+                      <Feather name={ex.icon as "check"} size={22} color={subjectColor} />
+                    </View>
+                    <View style={styles.exInfo}>
+                      <Text style={[styles.exTitle, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                        {ex.label}
+                      </Text>
+                      <Text style={[styles.exDesc, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                        {ex.desc}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
                   </Pressable>
                 ))}
               </View>
-            </ScrollView>
-          </View>
+            </View>
+          </>
         )}
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-            Exercise Type
-          </Text>
-          <View style={styles.exerciseList}>
-            {exercises.map((ex) => (
-              <Pressable
-                key={ex.key}
-                style={[styles.exCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                onPress={() => handleExercise(ex.key)}
-              >
-                <View style={[styles.exIcon, { backgroundColor: subjectColor + "18" }]}>
-                  <Feather name={ex.icon as "check"} size={22} color={subjectColor} />
-                </View>
-                <View style={styles.exInfo}>
-                  <Text style={[styles.exTitle, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-                    {ex.label}
-                  </Text>
-                  <Text style={[styles.exDesc, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-                    {ex.desc}
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </Pressable>
-            ))}
-          </View>
-        </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -239,7 +315,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
   },
-  flagText: { fontSize: 12 },
+  flagText: { fontSize: 18 },
   langLabel: { fontSize: 14 },
   levelRow: { flexDirection: "row", gap: 8 },
   levelBtn: {
@@ -264,4 +340,31 @@ const styles = StyleSheet.create({
   exInfo: { flex: 1, gap: 2 },
   exTitle: { fontSize: 15 },
   exDesc: { fontSize: 12 },
+  mathInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 24,
+  },
+  mathInfoIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mathInfoTitle: { fontSize: 15, marginBottom: 3 },
+  mathInfoDesc: { fontSize: 12 },
+  startBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  startBtnText: { fontSize: 17 },
 });

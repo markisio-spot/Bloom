@@ -24,6 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { scheduleStreakReminder } from "@/utils/notifications";
+import CoinIcon from "@/components/CoinIcon";
 
 const SUBJECTS = [
   { key: "math", label: "Math", icon: "hash" as const, color: "#4F46E5" },
@@ -116,10 +117,7 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View style={[styles.coinsBadge, { backgroundColor: "rgba(245,197,24,0.2)" }]}>
-              <Feather name="star" size={16} color={colors.gold} />
-              <Text style={[styles.coinsText, { color: colors.gold, fontFamily: "Inter_700Bold" }]}>
-                {displayUser?.coins ?? 0}
-              </Text>
+              <CoinIcon size={22} count={displayUser?.coins ?? 0} />
             </View>
           </View>
 
@@ -183,11 +181,8 @@ export default function HomeScreen() {
                   </View>
                 </View>
                 {!challenge.completed && (
-                  <View style={[styles.rewardBadge, { backgroundColor: colors.gold }]}>
-                    <Feather name="star" size={12} color={colors.primary} />
-                    <Text style={[styles.rewardText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-                      {challenge.coinReward}
-                    </Text>
+                  <View style={[styles.rewardBadge, { backgroundColor: "rgba(245,197,24,0.18)", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }]}>
+                    <CoinIcon size={16} count={challenge.coinReward} textStyle={{ color: colors.primary, fontSize: 13 }} />
                   </View>
                 )}
                 {challenge.completed && (
