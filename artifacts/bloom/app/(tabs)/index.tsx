@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { scheduleStreakReminder } from "@/utils/notifications";
 
 const SUBJECTS = [
   { key: "math", label: "Math", icon: "hash" as const, color: "#4F46E5" },
@@ -71,6 +72,7 @@ export default function HomeScreen() {
     if (token && !hasCheckedIn.current) {
       hasCheckedIn.current = true;
       streakMutation.mutate(undefined);
+      scheduleStreakReminder();
     }
   }, [token]);
 

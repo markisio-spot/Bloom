@@ -6,6 +6,7 @@ import {
   useTextToSpeech,
   type GenerateLessonBodySubject,
 } from "@workspace/api-client-react";
+import { sendLessonCompleteNotification } from "@/utils/notifications";
 import { Audio } from "expo-av";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -299,6 +300,7 @@ export default function LessonScreen() {
       const finalScore = score + (isCorrect ? 0 : 0);
       const coinsEarned = Math.max(10, Math.round((finalScore / questions.length) * 50));
       earnCoinsMutation.mutate({ data: { amount: coinsEarned } });
+      sendLessonCompleteNotification(coinsEarned);
       saveProgressMutation.mutate({
         data: {
           subject: params.subject ?? "math",
