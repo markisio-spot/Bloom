@@ -1024,16 +1024,18 @@ components:
           enum: [math, french, spanish, maltese, italian, grammar, history, geography]
         exerciseType:
           type: string
+          nullable: true
         level:
           type: integer
           minimum: 1
           maximum: 12
-        language:
-          type: string
+        languageSection:
+          type: integer
+          minimum: 1
+          maximum: 18
           nullable: true
       required:
         - subject
-        - exerciseType
         - level
 
     Lesson:
@@ -1078,6 +1080,12 @@ components:
           nullable: true
         correctAnswer:
           type: string
+        explanation:
+          type: string
+          nullable: true
+        hint:
+          type: string
+          nullable: true
         pairs:
           type: array
           items:
@@ -1212,6 +1220,9 @@ components:
           type: integer
         lessonsCompleted:
           type: integer
+        languageSection:
+          type: integer
+          nullable: true
         lastActivityAt:
           type: string
           nullable: true
@@ -1233,6 +1244,9 @@ components:
           type: integer
         exerciseType:
           type: string
+        languageSection:
+          type: integer
+          nullable: true
       required:
         - subject
         - level

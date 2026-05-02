@@ -11,5 +11,6 @@ export interface SubjectProgress {
   currentLevel: number;
   highestScore: number;
   lessonsCompleted: number;
+  languageSection?: number | null;
   lastActivityAt: string | null;
 }

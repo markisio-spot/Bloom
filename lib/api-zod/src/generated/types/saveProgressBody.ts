@@ -11,4 +11,5 @@ export interface SaveProgressBody {
   level: number;
   score: number;
   exerciseType: string;
+  languageSection?: number | null;
 }

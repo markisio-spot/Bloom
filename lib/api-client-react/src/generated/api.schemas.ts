@@ -134,13 +134,17 @@ export const GenerateLessonBodySubject = {
 
 export interface GenerateLessonBody {
   subject: GenerateLessonBodySubject;
-  exerciseType: string;
+  exerciseType?: string | null;
   /**
    * @minimum 1
    * @maximum 12
    */
   level: number;
-  language?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 18
+   */
+  languageSection?: number | null;
 }
 
 export type LessonQuestionType =
@@ -165,6 +169,8 @@ export interface LessonQuestion {
   type: LessonQuestionType;
   options: string[] | null;
   correctAnswer: string;
+  explanation?: string | null;
+  hint?: string | null;
   pairs: MatchPair[] | null;
 }
 
@@ -239,6 +245,7 @@ export interface SubjectProgress {
   currentLevel: number;
   highestScore: number;
   lessonsCompleted: number;
+  languageSection?: number | null;
   lastActivityAt: string | null;
 }
 
@@ -247,6 +254,7 @@ export interface SaveProgressBody {
   level: number;
   score: number;
   exerciseType: string;
+  languageSection?: number | null;
 }
 
 export interface OpenaiConversation {

@@ -9,6 +9,7 @@ export const subjectProgressTable = pgTable("subject_progress", {
   currentLevel: integer("current_level").notNull().default(1),
   highestScore: integer("highest_score").notNull().default(0),
   lessonsCompleted: integer("lessons_completed").notNull().default(0),
+  languageSection: integer("language_section").notNull().default(1),
   lastActivityAt: timestamp("last_activity_at"),
 });
 

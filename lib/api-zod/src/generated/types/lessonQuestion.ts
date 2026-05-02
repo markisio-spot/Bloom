@@ -14,5 +14,7 @@ export interface LessonQuestion {
   type: LessonQuestionType;
   options: string[] | null;
   correctAnswer: string;
+  explanation?: string | null;
+  hint?: string | null;
   pairs: MatchPair[] | null;
 }

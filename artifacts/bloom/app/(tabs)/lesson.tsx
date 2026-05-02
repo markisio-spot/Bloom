@@ -34,6 +34,7 @@ interface LessonQuestion {
   options?: string[] | null;
   correctAnswer: string;
   explanation?: string | null;
+  hint?: string | null;
   pairs?: Array<{ left: string; right: string }> | null;
 }
 
@@ -103,6 +104,7 @@ export default function LessonScreen() {
     subject: string;
     exerciseType: string;
     level: string;
+    languageSection: string;
   }>();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -114,6 +116,9 @@ export default function LessonScreen() {
   const [matchedPairs, setMatchedPairs] = useState<Array<[string, string]>>([]);
   const [phase, setPhase] = useState<"loading" | "audio" | "quiz" | "results" | "error">("loading");
   const [score, setScore] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState<Set<number>>(new Set());
+  const [hintVisible, setHintVisible] = useState(false);
+  const [finalCoinsEarned, setFinalCoinsEarned] = useState(0);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -167,12 +172,15 @@ export default function LessonScreen() {
 
   const saveProgressMutation = useSaveProgress({ mutation: {} });
 
+  const langSection = params.languageSection ? Number(params.languageSection) : undefined;
+
   useEffect(() => {
     generateMutation.mutate({
       data: {
         subject: (params.subject ?? "math") as GenerateLessonBodySubject,
-        exerciseType: params.exerciseType ?? "multiple_choice",
+        exerciseType: params.exerciseType !== "auto" ? (params.exerciseType ?? undefined) : undefined,
         level: Number(params.level) || 5,
+        languageSection: langSection,
       },
     });
     return () => {
@@ -216,8 +224,9 @@ export default function LessonScreen() {
               generateMutation.mutate({
                 data: {
                   subject: (params.subject ?? "math") as GenerateLessonBodySubject,
-                  exerciseType: params.exerciseType ?? "multiple_choice",
+                  exerciseType: params.exerciseType !== "auto" ? (params.exerciseType ?? undefined) : undefined,
                   level: Number(params.level) || 5,
+                  languageSection: langSection,
                 },
               });
             }}
@@ -290,9 +299,12 @@ export default function LessonScreen() {
   if (phase === "results") {
     const total = lesson?.questions.length ?? 0;
     const pct = total > 0 ? Math.round((score / total) * 100) : 0;
-    const coinsEarned = Math.max(10, Math.round((pct / 100) * 50));
     const passed = pct >= 60;
     const emoji = pct === 100 ? "🏆" : pct >= 80 ? "⭐" : pct >= 60 ? "👍" : "💪";
+    const hintsCount = hintsUsed.size;
+    const baseCoins = Math.max(10, Math.round((pct / 100) * 50));
+    const hintPenalty = hintsCount * 5;
+    const displayCoins = finalCoinsEarned || Math.max(5, baseCoins - hintPenalty);
 
     const handleContinue = () => {
       router.dismissAll();
@@ -304,13 +316,17 @@ export default function LessonScreen() {
       setAnswers({});
       setSubmitted({});
       setScore(0);
+      setHintsUsed(new Set());
+      setHintVisible(false);
+      setFinalCoinsEarned(0);
       setMatchedPairs([]);
       progressAnim.setValue(0);
       generateMutation.mutate({
         data: {
           subject: (params.subject ?? "math") as GenerateLessonBodySubject,
-          exerciseType: params.exerciseType ?? "multiple_choice",
+          exerciseType: params.exerciseType !== "auto" ? (params.exerciseType ?? undefined) : undefined,
           level: Number(params.level) || 5,
+          languageSection: langSection,
         },
       });
     };
@@ -336,15 +352,32 @@ export default function LessonScreen() {
             {/* Coins */}
             <View style={[styles.coinsEarned, { backgroundColor: colors.gold + "15", borderColor: colors.gold }]}>
               <Text style={{ fontSize: 28 }}>🪙</Text>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={[styles.coinsEarnedText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-                  +{coinsEarned} coins earned!
+                  +{displayCoins} coins earned!
                 </Text>
-                <Text style={[styles.coinsSubText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-                  Added to your wallet
-                </Text>
+                {hintsCount > 0 ? (
+                  <Text style={[styles.coinsSubText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                    Base {baseCoins} − {hintPenalty} hint {hintsCount === 1 ? "penalty" : "penalties"}
+                  </Text>
+                ) : (
+                  <Text style={[styles.coinsSubText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                    No hints used — full reward! 🎉
+                  </Text>
+                )}
               </View>
             </View>
+
+            {/* Hint summary */}
+            {hintsCount > 0 && (
+              <View style={[styles.hintSummary, { backgroundColor: colors.gold + "10", borderColor: colors.gold + "50" }]}>
+                <Text style={{ fontSize: 18 }}>💡</Text>
+                <Text style={[styles.hintSummaryText, { color: colors.primary, fontFamily: "Inter_400Regular" }]}>
+                  You used {hintsCount} hint{hintsCount > 1 ? "s" : ""} this lesson.
+                  Each hint reduces your reward by 5 coins.
+                </Text>
+              </View>
+            )}
 
             {/* Answer review */}
             {lesson?.questions && lesson.questions.length > 0 && (
@@ -355,6 +388,7 @@ export default function LessonScreen() {
                 {lesson.questions.map((q, idx) => {
                   const userAns = answers[idx] ?? "";
                   const wasCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+                  const usedHint = hintsUsed.has(idx);
                   return (
                     <View key={idx} style={[styles.reviewItem, { backgroundColor: colors.card, borderColor: wasCorrect ? colors.correct + "60" : colors.wrong + "60" }]}>
                       <View style={styles.reviewItemTop}>
@@ -364,6 +398,9 @@ export default function LessonScreen() {
                         <Text style={[styles.reviewQ, { color: colors.primary, fontFamily: "Inter_500Medium" }]} numberOfLines={2}>
                           {q.question}
                         </Text>
+                        {usedHint && (
+                          <Text style={{ fontSize: 14 }}>💡</Text>
+                        )}
                       </View>
                       {!wasCorrect && (
                         <View style={styles.reviewAnswers}>
@@ -456,21 +493,24 @@ export default function LessonScreen() {
   const handleNext = () => {
     setTextInput("");
     setMatchSelected(null);
+    setHintVisible(false);
     if (currentQ === questions.length - 1) {
-      // score already includes this question via handleSubmitCurrent
-      const finalScore = score + (isCorrect ? 0 : 0); // isCorrect already counted
-      const coinsEarned = Math.max(10, Math.round((score / questions.length) * 50));
-      earnCoinsMutation.mutate({ data: { amount: coinsEarned } });
-      sendLessonCompleteNotification(coinsEarned);
+      const finalPct = Math.round((score / questions.length) * 100);
+      const baseCoins = Math.max(10, Math.round((finalPct / 100) * 50));
+      const hintPenalty = hintsUsed.size * 5;
+      const coins = Math.max(5, baseCoins - hintPenalty);
+      setFinalCoinsEarned(coins);
+      earnCoinsMutation.mutate({ data: { amount: coins } });
+      sendLessonCompleteNotification(coins);
       saveProgressMutation.mutate({
         data: {
           subject: params.subject ?? "math",
           level: Number(params.level) || 5,
-          score: Math.round((score / questions.length) * 100),
-          exerciseType: params.exerciseType ?? "multiple_choice",
+          score: finalPct,
+          exerciseType: params.exerciseType !== "auto" ? (params.exerciseType ?? "mixed") : "mixed",
+          languageSection: langSection,
         },
       });
-      void finalScore;
       setPhase("results");
     } else {
       setCurrentQ((c) => c + 1);
@@ -545,6 +585,39 @@ export default function LessonScreen() {
         <Text style={[styles.qTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
           {q.question}
         </Text>
+
+        {/* Hint button — only show if hint available and not submitted */}
+        {q.hint && !isSubmitted && (
+          <View style={styles.hintArea}>
+            {!hintVisible ? (
+              <Pressable
+                style={[styles.hintBtn, { borderColor: colors.gold, backgroundColor: colors.gold + "12" }]}
+                onPress={() => {
+                  setHintVisible(true);
+                  setHintsUsed((prev) => new Set([...prev, currentQ]));
+                }}
+              >
+                <Text style={{ fontSize: 15 }}>💡</Text>
+                <Text style={[styles.hintBtnText, { color: "#B8860B", fontFamily: "Inter_600SemiBold" }]}>
+                  Show Hint {hintsUsed.has(currentQ) ? "" : "(-5 coins)"}
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={[styles.hintCard, { backgroundColor: "#FFF8E1", borderColor: colors.gold }]}>
+                <View style={styles.hintCardTop}>
+                  <Text style={{ fontSize: 16 }}>💡</Text>
+                  <Text style={[styles.hintCardLabel, { color: "#B8860B", fontFamily: "Inter_700Bold" }]}>Hint</Text>
+                  <Text style={[styles.hintPenaltyTag, { color: "#B8860B", fontFamily: "Inter_400Regular" }]}>
+                    −5 coins
+                  </Text>
+                </View>
+                <Text style={[styles.hintCardText, { color: colors.primary, fontFamily: "Inter_400Regular" }]}>
+                  {q.hint}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Multiple choice */}
         {q.type === "multiple_choice" && q.options && (
@@ -835,6 +908,29 @@ const styles = StyleSheet.create({
   matchArrow: { justifyContent: "center", paddingTop: 8 },
   matchItem: { padding: 12, borderRadius: 12, borderWidth: 1.5, alignItems: "center" },
   matchText: { fontSize: 14, textAlign: "center" },
+
+  hintArea: { marginBottom: 16 },
+  hintBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 12, borderWidth: 1.5,
+    alignSelf: "flex-start",
+  },
+  hintBtnText: { fontSize: 14 },
+  hintCard: {
+    padding: 14, borderRadius: 14,
+    borderWidth: 1.5, borderLeftWidth: 4, gap: 6,
+  },
+  hintCardTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  hintCardLabel: { fontSize: 13, flex: 1 },
+  hintPenaltyTag: { fontSize: 12 },
+  hintCardText: { fontSize: 14, lineHeight: 21 },
+
+  hintSummary: {
+    flexDirection: "row", alignItems: "flex-start", gap: 10,
+    padding: 14, borderRadius: 14, borderWidth: 1.5, marginBottom: 16,
+  },
+  hintSummaryText: { flex: 1, fontSize: 13, lineHeight: 20 },
 
   feedbackSection: { marginTop: 16, gap: 0 },
   feedbackBar: {

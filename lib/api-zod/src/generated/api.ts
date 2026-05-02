@@ -307,6 +307,8 @@ export const GetFriendsLeaderboardResponse = zod.array(
  */
 export const generateLessonBodyLevelMax = 12;
 
+export const generateLessonBodyLanguageSectionMax = 18;
+
 export const GenerateLessonBody = zod.object({
   subject: zod.enum([
     "math",
@@ -318,9 +320,13 @@ export const GenerateLessonBody = zod.object({
     "history",
     "geography",
   ]),
-  exerciseType: zod.string(),
+  exerciseType: zod.string().nullish(),
   level: zod.number().min(1).max(generateLessonBodyLevelMax),
-  language: zod.string().nullish(),
+  languageSection: zod
+    .number()
+    .min(1)
+    .max(generateLessonBodyLanguageSectionMax)
+    .nullish(),
 });
 
 export const GenerateLessonResponse = zod.object({
@@ -343,6 +349,8 @@ export const GenerateLessonResponse = zod.object({
       ]),
       options: zod.array(zod.string()).nullable(),
       correctAnswer: zod.string(),
+      explanation: zod.string().nullish(),
+      hint: zod.string().nullish(),
       pairs: zod
         .array(
           zod.object({
@@ -405,6 +413,8 @@ export const GetDailyChallengeResponse = zod.object({
       ]),
       options: zod.array(zod.string()).nullable(),
       correctAnswer: zod.string(),
+      explanation: zod.string().nullish(),
+      hint: zod.string().nullish(),
       pairs: zod
         .array(
           zod.object({
@@ -440,6 +450,7 @@ export const GetProgressResponseItem = zod.object({
   currentLevel: zod.number(),
   highestScore: zod.number(),
   lessonsCompleted: zod.number(),
+  languageSection: zod.number().nullish(),
   lastActivityAt: zod.string().nullable(),
 });
 export const GetProgressResponse = zod.array(GetProgressResponseItem);
@@ -452,6 +463,7 @@ export const SaveProgressBody = zod.object({
   level: zod.number(),
   score: zod.number(),
   exerciseType: zod.string(),
+  languageSection: zod.number().nullish(),
 });
 
 export const SaveProgressResponse = zod.object({
@@ -459,6 +471,7 @@ export const SaveProgressResponse = zod.object({
   currentLevel: zod.number(),
   highestScore: zod.number(),
   lessonsCompleted: zod.number(),
+  languageSection: zod.number().nullish(),
   lastActivityAt: zod.string().nullable(),
 });
 

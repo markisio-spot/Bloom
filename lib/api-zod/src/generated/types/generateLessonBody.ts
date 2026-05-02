@@ -9,11 +9,15 @@ import type { GenerateLessonBodySubject } from "./generateLessonBodySubject";
 
 export interface GenerateLessonBody {
   subject: GenerateLessonBodySubject;
-  exerciseType: string;
+  exerciseType?: string | null;
   /**
    * @minimum 1
    * @maximum 12
    */
   level: number;
-  language?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 18
+   */
+  languageSection?: number | null;
 }
