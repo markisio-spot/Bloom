@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -32,6 +33,7 @@ interface LessonQuestion {
   type: QuestionType;
   options?: string[] | null;
   correctAnswer: string;
+  explanation?: string | null;
   pairs?: Array<{ left: string; right: string }> | null;
 }
 
@@ -45,6 +47,53 @@ interface Lesson {
   audioText?: string | null;
   questions: LessonQuestion[];
 }
+
+// ─── Explanation card ─────────────────────────────────────────────────────────
+
+function ExplanationCard({ explanation, isCorrect, colors }: {
+  explanation?: string | null;
+  isCorrect: boolean;
+  colors: ReturnType<typeof useColors>;
+}) {
+  if (!explanation) return null;
+  return (
+    <View style={[
+      explanationStyles.card,
+      {
+        backgroundColor: isCorrect ? colors.correct + "12" : "#FFF8E1",
+        borderColor: isCorrect ? colors.correct : colors.gold,
+        borderLeftColor: isCorrect ? colors.correct : colors.gold,
+      },
+    ]}>
+      <View style={explanationStyles.iconRow}>
+        <Text style={explanationStyles.bulb}>💡</Text>
+        <Text style={[explanationStyles.label, { color: isCorrect ? colors.correct : "#B8860B", fontFamily: "Inter_700Bold" }]}>
+          {isCorrect ? "Great job!" : "Here's why:"}
+        </Text>
+      </View>
+      <Text style={[explanationStyles.text, { color: colors.primary, fontFamily: "Inter_400Regular" }]}>
+        {explanation}
+      </Text>
+    </View>
+  );
+}
+
+const explanationStyles = StyleSheet.create({
+  card: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderLeftWidth: 4,
+    gap: 6,
+  },
+  iconRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  bulb: { fontSize: 16 },
+  label: { fontSize: 13 },
+  text: { fontSize: 14, lineHeight: 21 },
+});
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function LessonScreen() {
   const colors = useColors();
@@ -67,6 +116,7 @@ export default function LessonScreen() {
   const [score, setScore] = useState(0);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const generateMutation = useGenerateLesson({
     mutation: {
@@ -112,9 +162,7 @@ export default function LessonScreen() {
     },
   });
 
-  const saveProgressMutation = useSaveProgress({
-    mutation: {},
-  });
+  const saveProgressMutation = useSaveProgress({ mutation: {} });
 
   useEffect(() => {
     generateMutation.mutate({
@@ -135,6 +183,18 @@ export default function LessonScreen() {
     }
   }, [phase]);
 
+  // Animate progress bar
+  useEffect(() => {
+    if (lesson?.questions?.length && phase === "quiz") {
+      Animated.timing(progressAnim, {
+        toValue: (currentQ + 1) / lesson.questions.length,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [currentQ, lesson, phase]);
+
+  // ── Loading ──
   if (phase === "loading" || generateMutation.isPending) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
@@ -146,7 +206,7 @@ export default function LessonScreen() {
             Generating your lesson...
           </Text>
           <Text style={[styles.loadingSubtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-            Powered by AI
+            Powered by AI ✨
           </Text>
           <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} size="large" />
         </View>
@@ -154,6 +214,7 @@ export default function LessonScreen() {
     );
   }
 
+  // ── Audio ──
   if (phase === "audio") {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
@@ -173,11 +234,11 @@ export default function LessonScreen() {
             </Text>
           </View>
           <Pressable
-            style={[styles.startBtn, { backgroundColor: colors.primary }]}
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
             onPress={() => setPhase("quiz")}
             disabled={audioPlaying}
           >
-            <Text style={[styles.startBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+            <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
               {audioPlaying ? "Listening..." : "Start Questions"}
             </Text>
           </Pressable>
@@ -186,63 +247,120 @@ export default function LessonScreen() {
     );
   }
 
+  // ── Results ──
   if (phase === "results") {
     const total = lesson?.questions.length ?? 0;
-    const correct = score;
-    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const pct = total > 0 ? Math.round((score / total) * 100) : 0;
     const coinsEarned = Math.max(10, Math.round((pct / 100) * 50));
     const passed = pct >= 60;
+    const emoji = pct === 100 ? "🏆" : pct >= 80 ? "⭐" : pct >= 60 ? "👍" : "💪";
+
+    const handleContinue = () => {
+      router.dismissAll();
+    };
+
+    const handleRetry = () => {
+      setPhase("loading");
+      setCurrentQ(0);
+      setAnswers({});
+      setSubmitted({});
+      setScore(0);
+      setMatchedPairs([]);
+      progressAnim.setValue(0);
+      generateMutation.mutate({
+        data: {
+          subject: (params.subject ?? "math") as GenerateLessonBodySubject,
+          exerciseType: params.exerciseType ?? "multiple_choice",
+          level: Number(params.level) || 5,
+        },
+      });
+    };
 
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-        <ScrollView contentContainerStyle={styles.resultsContent}>
+        <ScrollView contentContainerStyle={styles.resultsContent} bounces={false}>
+          {/* Score header */}
           <View style={[styles.resultHeader, { backgroundColor: passed ? colors.correct : colors.wrong }]}>
-            <Feather name={passed ? "award" : "refresh-cw"} size={48} color="#fff" />
+            <Text style={styles.resultEmoji}>{emoji}</Text>
             <Text style={[styles.resultTitle, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
-              {passed ? "Great work!" : "Keep practicing!"}
+              {pct === 100 ? "Perfect!" : passed ? "Great work!" : "Keep practicing!"}
             </Text>
             <Text style={[styles.resultPct, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
               {pct}%
             </Text>
-            <Text style={[styles.resultScore, { color: "rgba(255,255,255,0.8)", fontFamily: "Inter_400Regular" }]}>
-              {correct} of {total} correct
+            <Text style={[styles.resultScore, { color: "rgba(255,255,255,0.85)", fontFamily: "Inter_400Regular" }]}>
+              {score} of {total} correct
             </Text>
           </View>
 
           <View style={styles.resultBody}>
-            <View style={[styles.coinsEarned, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Feather name="star" size={24} color={colors.gold} />
-              <Text style={[styles.coinsEarnedText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-                +{coinsEarned} coins earned!
-              </Text>
+            {/* Coins */}
+            <View style={[styles.coinsEarned, { backgroundColor: colors.gold + "15", borderColor: colors.gold }]}>
+              <Text style={{ fontSize: 28 }}>🪙</Text>
+              <View>
+                <Text style={[styles.coinsEarnedText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                  +{coinsEarned} coins earned!
+                </Text>
+                <Text style={[styles.coinsSubText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                  Added to your wallet
+                </Text>
+              </View>
             </View>
 
+            {/* Answer review */}
+            {lesson?.questions && lesson.questions.length > 0 && (
+              <View style={styles.reviewSection}>
+                <Text style={[styles.reviewTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                  Answer Review
+                </Text>
+                {lesson.questions.map((q, idx) => {
+                  const userAns = answers[idx] ?? "";
+                  const wasCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+                  return (
+                    <View key={idx} style={[styles.reviewItem, { backgroundColor: colors.card, borderColor: wasCorrect ? colors.correct + "60" : colors.wrong + "60" }]}>
+                      <View style={styles.reviewItemTop}>
+                        <View style={[styles.reviewDot, { backgroundColor: wasCorrect ? colors.correct : colors.wrong }]}>
+                          <Feather name={wasCorrect ? "check" : "x"} size={10} color="#fff" />
+                        </View>
+                        <Text style={[styles.reviewQ, { color: colors.primary, fontFamily: "Inter_500Medium" }]} numberOfLines={2}>
+                          {q.question}
+                        </Text>
+                      </View>
+                      {!wasCorrect && (
+                        <View style={styles.reviewAnswers}>
+                          <Text style={[styles.reviewYours, { color: colors.wrong, fontFamily: "Inter_400Regular" }]}>
+                            Your answer: {userAns || "—"}
+                          </Text>
+                          <Text style={[styles.reviewCorrect, { color: colors.correct, fontFamily: "Inter_600SemiBold" }]}>
+                            ✓ {q.correctAnswer}
+                          </Text>
+                          {q.explanation && (
+                            <Text style={[styles.reviewExplanation, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                              💡 {q.explanation}
+                            </Text>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Buttons */}
             <Pressable
-              style={[styles.doneBtn, { backgroundColor: colors.primary }]}
-              onPress={() => router.replace("/(tabs)/learn")}
+              style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+              onPress={handleContinue}
             >
-              <Text style={[styles.doneBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+              <Feather name="book-open" size={18} color="#fff" />
+              <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
                 Continue Learning
               </Text>
             </Pressable>
 
             <Pressable
               style={[styles.retryBtn, { borderColor: colors.border }]}
-              onPress={() => {
-                setPhase("loading");
-                setCurrentQ(0);
-                setAnswers({});
-                setSubmitted({});
-                setScore(0);
-                setMatchedPairs([]);
-                generateMutation.mutate({
-                  data: {
-                    subject: (params.subject ?? "math") as GenerateLessonBodySubject,
-                    exerciseType: params.exerciseType ?? "multiple_choice",
-                    level: Number(params.level) || 5,
-                  },
-                });
-              }}
+              onPress={handleRetry}
             >
               <Feather name="refresh-cw" size={16} color={colors.primary} />
               <Text style={[styles.retryBtnText, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
@@ -255,14 +373,16 @@ export default function LessonScreen() {
     );
   }
 
+  // ── No questions fallback ──
   if (!lesson || !lesson.questions?.length) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
-          <Text style={[{ color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-            No questions generated. Try again.
+          <Text style={{ fontSize: 40 }}>😕</Text>
+          <Text style={[{ color: colors.primary, fontFamily: "Inter_600SemiBold", textAlign: "center" }]}>
+            No questions generated. Please try again.
           </Text>
-          <Pressable style={[styles.startBtn, { backgroundColor: colors.primary, marginTop: 16 }]} onPress={() => router.back()}>
+          <Pressable style={[styles.actionBtn, { backgroundColor: colors.primary, marginTop: 16, paddingHorizontal: 24 }]} onPress={() => router.dismissAll()}>
             <Text style={[{ color: "#fff", fontFamily: "Inter_600SemiBold" }]}>Go Back</Text>
           </Pressable>
         </View>
@@ -270,6 +390,7 @@ export default function LessonScreen() {
     );
   }
 
+  // ── Quiz ──
   const questions = lesson.questions;
   const q = questions[currentQ];
   if (!q) return null;
@@ -297,18 +418,20 @@ export default function LessonScreen() {
     setTextInput("");
     setMatchSelected(null);
     if (currentQ === questions.length - 1) {
-      const finalScore = score + (isCorrect ? 0 : 0);
-      const coinsEarned = Math.max(10, Math.round((finalScore / questions.length) * 50));
+      // score already includes this question via handleSubmitCurrent
+      const finalScore = score + (isCorrect ? 0 : 0); // isCorrect already counted
+      const coinsEarned = Math.max(10, Math.round((score / questions.length) * 50));
       earnCoinsMutation.mutate({ data: { amount: coinsEarned } });
       sendLessonCompleteNotification(coinsEarned);
       saveProgressMutation.mutate({
         data: {
           subject: params.subject ?? "math",
           level: Number(params.level) || 5,
-          score: Math.round((finalScore / questions.length) * 100),
+          score: Math.round((score / questions.length) * 100),
           exerciseType: params.exerciseType ?? "multiple_choice",
         },
       });
+      void finalScore;
       setPhase("results");
     } else {
       setCurrentQ((c) => c + 1);
@@ -321,8 +444,8 @@ export default function LessonScreen() {
     } else {
       const [prevSide, prevValue] = matchSelected.split(":");
       if (prevSide !== side) {
-        const left = prevSide === "left" ? prevValue : value;
-        const right = prevSide === "right" ? prevValue : value;
+        const left = prevSide === "left" ? prevValue! : value;
+        const right = prevSide === "right" ? prevValue! : value;
         setMatchedPairs((prev) => [...prev, [left, right]]);
         setAnswers((prev) => ({ ...prev, [currentQ]: "matched" }));
       }
@@ -333,19 +456,31 @@ export default function LessonScreen() {
   const isMatchedLeft = (val: string) => matchedPairs.some(([l]) => l === val);
   const isMatchedRight = (val: string) => matchedPairs.some(([, r]) => r === val);
 
+  const canSubmit = q.type === "multiple_choice"
+    ? !!userAnswer
+    : (q.type === "fill_blank" || q.type === "write")
+      ? !!textInput.trim()
+      : q.type === "match"
+        ? matchedPairs.length === (q.pairs?.length ?? 0)
+        : true;
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top"]}>
+      {/* ── Header / Progress ── */}
       <View style={styles.lessonHeader}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable style={styles.backBtn} onPress={() => router.dismissAll()}>
           <Feather name="arrow-left" size={22} color={colors.primary} />
         </Pressable>
-        <View style={styles.progressBar}>
-          <View
+        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+          <Animated.View
             style={[
               styles.progressFill,
               {
                 backgroundColor: colors.primary,
-                width: `${((currentQ + 1) / questions.length) * 100}%`,
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "100%"],
+                }),
               },
             ]}
           />
@@ -355,6 +490,7 @@ export default function LessonScreen() {
         </Text>
       </View>
 
+      {/* ── Content card (for reading passages) ── */}
       {lesson.content && currentQ === 0 && (
         <View style={[styles.contentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 140 }}>
@@ -365,11 +501,13 @@ export default function LessonScreen() {
         </View>
       )}
 
+      {/* ── Question ── */}
       <ScrollView contentContainerStyle={styles.qContent} showsVerticalScrollIndicator={false}>
         <Text style={[styles.qTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
           {q.question}
         </Text>
 
+        {/* Multiple choice */}
         {q.type === "multiple_choice" && q.options && (
           <View style={styles.options}>
             {q.options.map((opt) => {
@@ -383,11 +521,11 @@ export default function LessonScreen() {
                     styles.optionBtn,
                     {
                       backgroundColor: isThisCorrect
-                        ? colors.correct + "20"
+                        ? colors.correct + "18"
                         : isThisWrong
-                          ? colors.wrong + "20"
+                          ? colors.wrong + "18"
                           : isSelected
-                            ? colors.primary + "18"
+                            ? colors.primary + "14"
                             : colors.card,
                       borderColor: isThisCorrect
                         ? colors.correct
@@ -424,6 +562,7 @@ export default function LessonScreen() {
           </View>
         )}
 
+        {/* Fill blank / Write */}
         {(q.type === "fill_blank" || q.type === "write") && (
           <View style={styles.inputSection}>
             <TextInput
@@ -448,13 +587,14 @@ export default function LessonScreen() {
               <View style={[styles.correctAnswerBox, { backgroundColor: colors.correct + "15" }]}>
                 <Feather name="check-circle" size={14} color={colors.correct} />
                 <Text style={[styles.correctAnswerText, { color: colors.correct, fontFamily: "Inter_400Regular" }]}>
-                  Correct: {q.correctAnswer}
+                  Correct answer: {q.correctAnswer}
                 </Text>
               </View>
             )}
           </View>
         )}
 
+        {/* Matching */}
         {q.type === "match" && q.pairs && (
           <View style={styles.matchContainer}>
             <View style={styles.matchCol}>
@@ -465,9 +605,9 @@ export default function LessonScreen() {
                     styles.matchItem,
                     {
                       backgroundColor: isMatchedLeft(p.left)
-                        ? colors.correct + "20"
+                        ? colors.correct + "18"
                         : matchSelected === `left:${p.left}`
-                          ? colors.primary + "20"
+                          ? colors.primary + "18"
                           : colors.card,
                       borderColor: isMatchedLeft(p.left)
                         ? colors.correct
@@ -485,7 +625,9 @@ export default function LessonScreen() {
                 </Pressable>
               ))}
             </View>
-            <Feather name="arrow-right" size={20} color={colors.mutedForeground} style={{ alignSelf: "center" }} />
+            <View style={styles.matchArrow}>
+              <Feather name="arrow-right" size={20} color={colors.mutedForeground} />
+            </View>
             <View style={styles.matchCol}>
               {q.pairs.map((p) => (
                 <Pressable
@@ -494,9 +636,9 @@ export default function LessonScreen() {
                     styles.matchItem,
                     {
                       backgroundColor: isMatchedRight(p.right)
-                        ? colors.correct + "20"
+                        ? colors.correct + "18"
                         : matchSelected === `right:${p.right}`
-                          ? colors.primary + "20"
+                          ? colors.primary + "18"
                           : colors.card,
                       borderColor: isMatchedRight(p.right)
                         ? colors.correct
@@ -517,64 +659,81 @@ export default function LessonScreen() {
           </View>
         )}
 
+        {/* Feedback bar + explanation */}
         {isSubmitted && q.type !== "match" && (
-          <View
-            style={[
-              styles.feedbackBar,
-              {
-                backgroundColor: isCorrect ? colors.correct + "15" : colors.wrong + "15",
-                borderColor: isCorrect ? colors.correct : colors.wrong,
-              },
-            ]}
-          >
-            <Feather
-              name={isCorrect ? "check-circle" : "x-circle"}
-              size={18}
-              color={isCorrect ? colors.correct : colors.wrong}
-            />
-            <Text style={[
-              styles.feedbackText,
-              {
-                color: isCorrect ? colors.correct : colors.wrong,
-                fontFamily: "Inter_600SemiBold",
-              },
-            ]}>
-              {isCorrect ? "Correct!" : "Not quite!"}
-            </Text>
+          <View style={styles.feedbackSection}>
+            <View
+              style={[
+                styles.feedbackBar,
+                {
+                  backgroundColor: isCorrect ? colors.correct + "15" : colors.wrong + "15",
+                  borderColor: isCorrect ? colors.correct : colors.wrong,
+                },
+              ]}
+            >
+              <Feather
+                name={isCorrect ? "check-circle" : "x-circle"}
+                size={18}
+                color={isCorrect ? colors.correct : colors.wrong}
+              />
+              <Text style={[
+                styles.feedbackText,
+                {
+                  color: isCorrect ? colors.correct : colors.wrong,
+                  fontFamily: "Inter_600SemiBold",
+                },
+              ]}>
+                {isCorrect ? "Correct! 🎉" : `Not quite — correct: ${q.correctAnswer}`}
+              </Text>
+            </View>
+            <ExplanationCard explanation={q.explanation} isCorrect={isCorrect} colors={colors} />
           </View>
         )}
 
+        {/* Match feedback + explanation */}
+        {isSubmitted && q.type === "match" && (
+          <View style={styles.feedbackSection}>
+            <View style={[styles.feedbackBar, { backgroundColor: colors.correct + "15", borderColor: colors.correct }]}>
+              <Feather name="check-circle" size={18} color={colors.correct} />
+              <Text style={[styles.feedbackText, { color: colors.correct, fontFamily: "Inter_600SemiBold" }]}>
+                Pairs matched!
+              </Text>
+            </View>
+            {q.explanation && (
+              <ExplanationCard explanation={q.explanation} isCorrect={true} colors={colors} />
+            )}
+          </View>
+        )}
+
+        {/* Action button */}
         <View style={styles.actionRow}>
           {!isSubmitted ? (
             <Pressable
               style={[
-                styles.submitBtn,
+                styles.actionBtn,
                 { backgroundColor: colors.primary },
-                !userAnswer && q.type !== "fill_blank" && q.type !== "write" && q.type !== "match" && { opacity: 0.5 },
+                !canSubmit && { opacity: 0.45 },
               ]}
               onPress={handleSubmitCurrent}
-              disabled={
-                (q.type === "multiple_choice" && !userAnswer) ||
-                ((q.type === "fill_blank" || q.type === "write") && !textInput.trim())
-              }
+              disabled={!canSubmit}
             >
-              <Text style={[styles.submitBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+              <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
                 Check Answer
               </Text>
             </Pressable>
           ) : (
             <Pressable
-              style={[styles.submitBtn, { backgroundColor: isCorrect ? colors.correct : colors.primary }]}
+              style={[styles.actionBtn, { backgroundColor: isCorrect ? colors.correct : colors.primary }]}
               onPress={handleNext}
             >
-              <Text style={[styles.submitBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+              <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
                 {currentQ === questions.length - 1 ? "See Results" : "Next Question"}
               </Text>
               <Feather name="arrow-right" size={18} color="#fff" />
             </Pressable>
           )}
         </View>
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -586,147 +745,110 @@ const styles = StyleSheet.create({
   loadingIcon: { width: 80, height: 80, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   loadingTitle: { fontSize: 20, textAlign: "center" },
   loadingSubtitle: { fontSize: 14, textAlign: "center" },
+
   audioContainer: { flex: 1, paddingHorizontal: 24, paddingTop: 8 },
   audioCard: {
-    flex: 1,
-    margin: 0,
-    marginTop: 16,
-    marginBottom: 20,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
+    flex: 1, marginTop: 16, marginBottom: 20,
+    borderRadius: 24, alignItems: "center", justifyContent: "center", gap: 16,
   },
   audioIconCircle: { width: 100, height: 100, borderRadius: 50, alignItems: "center", justifyContent: "center" },
   audioTitle: { fontSize: 22 },
   audioSubtitle: { fontSize: 15 },
-  startBtn: { height: 54, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  startBtnText: { fontSize: 16 },
+
   backBtn: { width: 40, height: 40, justifyContent: "center" },
   lessonHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
   },
-  progressBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: "#E0E8FF",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: { height: "100%", borderRadius: 3 },
+  progressTrack: { flex: 1, height: 8, borderRadius: 4, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 4 },
   qCounter: { fontSize: 13 },
+
   contentCard: {
-    marginHorizontal: 20,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    marginBottom: 4,
+    marginHorizontal: 20, padding: 14, borderRadius: 14,
+    borderWidth: 1.5, marginBottom: 4,
   },
   contentText: { fontSize: 14, lineHeight: 22 },
+
   qContent: { paddingHorizontal: 20, paddingTop: 12 },
   qTitle: { fontSize: 18, lineHeight: 28, marginBottom: 20 },
+
   options: { gap: 10 },
   optionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    gap: 8,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    padding: 16, borderRadius: 14, borderWidth: 1.5, gap: 8,
   },
   optionText: { flex: 1, fontSize: 15 },
+
   inputSection: { gap: 10 },
   answerInput: {
-    borderWidth: 1.5,
-    borderRadius: 14,
-    padding: 16,
-    fontSize: 15,
-    minHeight: 52,
+    borderWidth: 1.5, borderRadius: 14, padding: 16,
+    fontSize: 15, minHeight: 52,
   },
   correctAnswerBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    padding: 12, borderRadius: 10,
   },
   correctAnswerText: { fontSize: 14 },
+
   matchContainer: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
   matchCol: { flex: 1, gap: 8 },
-  matchItem: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    alignItems: "center",
-  },
+  matchArrow: { justifyContent: "center", paddingTop: 8 },
+  matchItem: { padding: 12, borderRadius: 12, borderWidth: 1.5, alignItems: "center" },
   matchText: { fontSize: 14, textAlign: "center" },
+
+  feedbackSection: { marginTop: 16, gap: 0 },
   feedbackBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    marginTop: 16,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    padding: 14, borderRadius: 12, borderWidth: 1.5,
   },
-  feedbackText: { fontSize: 15 },
+  feedbackText: { fontSize: 14, flex: 1 },
+
   actionRow: { marginTop: 20 },
-  submitBtn: {
-    height: 54,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-    shadowColor: "#1B3A6B",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+  actionBtn: {
+    height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center",
+    flexDirection: "row", gap: 8,
+    shadowColor: "#1B3A6B", shadowOpacity: 0.2, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
-  submitBtnText: { fontSize: 16 },
+  actionBtnText: { fontSize: 16 },
+
+  // Results
   resultsContent: { flexGrow: 1 },
   resultHeader: {
-    padding: 40,
-    alignItems: "center",
-    gap: 12,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingTop: 50, paddingBottom: 40, paddingHorizontal: 24,
+    alignItems: "center", gap: 10,
+    borderBottomLeftRadius: 36, borderBottomRightRadius: 36,
   },
-  resultTitle: { fontSize: 26 },
-  resultPct: { fontSize: 56 },
+  resultEmoji: { fontSize: 52 },
+  resultTitle: { fontSize: 24 },
+  resultPct: { fontSize: 64, lineHeight: 72 },
   resultScore: { fontSize: 16 },
   resultBody: { padding: 24, gap: 16 },
   coinsEarned: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    flexDirection: "row", alignItems: "center", gap: 14,
+    padding: 18, borderRadius: 18, borderWidth: 2,
   },
-  coinsEarnedText: { fontSize: 18 },
-  doneBtn: {
-    height: 54,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
+  coinsEarnedText: { fontSize: 17 },
+  coinsSubText: { fontSize: 12, marginTop: 2 },
+  reviewSection: { gap: 10 },
+  reviewTitle: { fontSize: 17, marginBottom: 4 },
+  reviewItem: {
+    padding: 14, borderRadius: 14, borderWidth: 1.5, gap: 8,
   },
-  doneBtnText: { fontSize: 16 },
+  reviewItemTop: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  reviewDot: {
+    width: 20, height: 20, borderRadius: 10,
+    alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0,
+  },
+  reviewQ: { fontSize: 14, flex: 1, lineHeight: 20 },
+  reviewAnswers: { paddingLeft: 30, gap: 4 },
+  reviewYours: { fontSize: 13 },
+  reviewCorrect: { fontSize: 13 },
+  reviewExplanation: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   retryBtn: {
-    height: 50,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-    borderWidth: 1.5,
+    height: 50, borderRadius: 16, alignItems: "center", justifyContent: "center",
+    flexDirection: "row", gap: 8, borderWidth: 1.5,
   },
   retryBtnText: { fontSize: 15 },
 });

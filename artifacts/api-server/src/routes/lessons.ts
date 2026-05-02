@@ -27,10 +27,13 @@ Return a JSON object ONLY (no markdown fences) with this exact structure:
       "type": "<multiple_choice|fill_blank|match|write|speak>",
       "options": ["<option1>", "<option2>", "<option3>", "<option4>"] or null,
       "correctAnswer": "<correct answer>",
+      "explanation": "<1-2 sentence explanation of WHY the correct answer is right, written simply for the student's grade level>",
       "pairs": null
     }
   ]
 }
+
+IMPORTANT: Always include the "explanation" field for every question. It should briefly explain the reasoning behind the correct answer so the student can learn from their mistakes.
 `;
 
   const subjectPrompts: Record<Subject, Record<string, string>> = {
