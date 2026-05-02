@@ -206,7 +206,7 @@ export default function LeaderboardScreen() {
           🏆 Leaderboard
         </Text>
         <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-          Ranked by animal collection
+          Ranked by animal collection · Who's on top?
         </Text>
 
         {/* Tab switcher */}

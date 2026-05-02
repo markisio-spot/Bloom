@@ -112,7 +112,7 @@ export default function LessonScreen() {
   const [textInput, setTextInput] = useState("");
   const [matchSelected, setMatchSelected] = useState<string | null>(null);
   const [matchedPairs, setMatchedPairs] = useState<Array<[string, string]>>([]);
-  const [phase, setPhase] = useState<"loading" | "audio" | "quiz" | "results">("loading");
+  const [phase, setPhase] = useState<"loading" | "audio" | "quiz" | "results" | "error">("loading");
   const [score, setScore] = useState(0);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -127,6 +127,9 @@ export default function LessonScreen() {
         } else {
           setPhase("quiz");
         }
+      },
+      onError: () => {
+        setPhase("error");
       },
     },
   });
@@ -193,6 +196,42 @@ export default function LessonScreen() {
       }).start();
     }
   }, [currentQ, lesson, phase]);
+
+  // ── Error ──
+  if (phase === "error") {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={{ fontSize: 48 }}>😕</Text>
+          <Text style={[styles.loadingTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+            Couldn't generate lesson
+          </Text>
+          <Text style={[styles.loadingSubtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+            Check your connection and try again.
+          </Text>
+          <Pressable
+            style={[styles.actionBtn, { backgroundColor: colors.primary, marginTop: 8, paddingHorizontal: 32 }]}
+            onPress={() => {
+              setPhase("loading");
+              generateMutation.mutate({
+                data: {
+                  subject: (params.subject ?? "math") as GenerateLessonBodySubject,
+                  exerciseType: params.exerciseType ?? "multiple_choice",
+                  level: Number(params.level) || 5,
+                },
+              });
+            }}
+          >
+            <Feather name="refresh-cw" size={16} color="#fff" />
+            <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>Try Again</Text>
+          </Pressable>
+          <Pressable onPress={() => router.dismissAll()} style={{ marginTop: 8 }}>
+            <Text style={[{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14 }]}>Go Back</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // ── Loading ──
   if (phase === "loading" || generateMutation.isPending) {

@@ -109,9 +109,9 @@ export default function ShopScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top"]}>
       <View style={styles.header}>
         <View>
-          <Text style={[styles.title, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>Animal Shop</Text>
+          <Text style={[styles.title, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>🐾 Animal Shop</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-            {ownedAnimals.length} collected
+            {ownedAnimals.length} collected · Spend your coins
           </Text>
         </View>
         <View style={[styles.coinsBadge, { backgroundColor: colors.gold + "20" }]}>

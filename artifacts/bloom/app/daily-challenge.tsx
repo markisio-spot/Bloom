@@ -155,17 +155,20 @@ export default function DailyChallengeScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={22} color={colors.primary} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-            Daily Challenge
-          </Text>
+        <View style={styles.headerTop}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+            <Feather name="arrow-left" size={22} color={colors.primary} />
+          </Pressable>
           <View style={[styles.rewardBadge, { backgroundColor: colors.gold + "20" }]}>
             <CoinIcon size={18} count={challenge.coinReward} textStyle={{ color: colors.primary, fontSize: 14 }} />
           </View>
         </View>
+        <Text style={[styles.headerTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+          ⚡ Daily Challenge
+        </Text>
+        <Text style={[styles.headerSubtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+          Complete all questions to earn coins
+        </Text>
         <View style={styles.progressPills}>
           {questions.map((_, idx) => (
             <View
@@ -306,8 +309,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   backBtn: { width: 40, height: 40, justifyContent: "center" },
+  headerTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerCenter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerTitle: { fontSize: 20 },
+  headerTitle: { fontSize: 26, marginTop: 4 },
+  headerSubtitle: { fontSize: 13, marginTop: 2 },
   rewardBadge: {
     flexDirection: "row",
     alignItems: "center",

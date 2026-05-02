@@ -27,11 +27,11 @@ import { scheduleStreakReminder } from "@/utils/notifications";
 import CoinIcon from "@/components/CoinIcon";
 
 const SUBJECTS = [
-  { key: "math", label: "Math", icon: "hash" as const, color: "#4F46E5" },
-  { key: "languages", label: "Languages", icon: "globe" as const, color: "#0891B2" },
-  { key: "grammar", label: "Grammar", icon: "type" as const, color: "#7C3AED" },
-  { key: "history", label: "History", icon: "clock" as const, color: "#B45309" },
-  { key: "geography", label: "Geography", icon: "map" as const, color: "#065F46" },
+  { key: "math",      label: "Math",      emoji: "🔢", color: "#4F46E5" },
+  { key: "languages", label: "Languages", emoji: "🌍", color: "#0891B2" },
+  { key: "grammar",   label: "Grammar",   emoji: "📝", color: "#7C3AED" },
+  { key: "history",   label: "History",   emoji: "📜", color: "#B45309" },
+  { key: "geography", label: "Geography", emoji: "🗺️",  color: "#065F46" },
 ];
 
 export default function HomeScreen() {
@@ -41,31 +41,20 @@ export default function HomeScreen() {
   const hasCheckedIn = useRef(false);
 
   const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe({
-    query: {
-      enabled: !!token,
-      queryKey: getGetMeQueryKey(),
-    },
+    query: { enabled: !!token, queryKey: getGetMeQueryKey() },
   });
 
   const { data: progress } = useGetProgress({
-    query: {
-      enabled: !!token,
-      queryKey: getGetProgressQueryKey(),
-    },
+    query: { enabled: !!token, queryKey: getGetProgressQueryKey() },
   });
 
   const { data: challenge, isLoading: challengeLoading, refetch: refetchChallenge } = useGetDailyChallenge({
-    query: {
-      enabled: !!token,
-      queryKey: getGetDailyChallengeQueryKey(),
-    },
+    query: { enabled: !!token, queryKey: getGetDailyChallengeQueryKey() },
   });
 
   const streakMutation = useCheckInStreak({
     mutation: {
-      onSuccess: (data) => {
-        updateUser({ streakCount: data.streakCount });
-      },
+      onSuccess: (data) => { updateUser({ streakCount: data.streakCount }); },
     },
   });
 
@@ -105,29 +94,29 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={false} onRefresh={handleRefresh} />}
       >
-        {/* Header */}
+        {/* ── Navy Header ── */}
         <View style={[styles.header, { backgroundColor: colors.primary }]}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={[styles.greeting, { color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" }]}>
+              <Text style={[styles.greeting, { color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular" }]}>
                 Good day,
               </Text>
               <Text style={[styles.displayName, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
-                {displayUser?.displayName ?? "Learner"}
+                {displayUser?.displayName ?? "Learner"} 👋
               </Text>
             </View>
-            <View style={[styles.coinsBadge, { backgroundColor: "rgba(245,197,24,0.2)" }]}>
-              <CoinIcon size={22} count={displayUser?.coins ?? 0} />
+            <View style={[styles.coinsBadge, { backgroundColor: "rgba(245,197,24,0.18)" }]}>
+              <CoinIcon size={20} count={displayUser?.coins ?? 0} textStyle={{ color: "#F5C518", fontSize: 15 }} />
             </View>
           </View>
 
           <View style={styles.streakRow}>
-            <View style={[styles.streakItem, { backgroundColor: "rgba(255,255,255,0.1)" }]}>
-              <Feather name="zap" size={18} color={colors.gold} />
+            <View style={[styles.streakItem, { backgroundColor: "rgba(255,255,255,0.12)" }]}>
+              <Feather name="zap" size={16} color={colors.gold} />
               <Text style={[styles.streakCount, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
                 {displayUser?.streakCount ?? 0}
               </Text>
-              <Text style={[styles.streakLabel, { color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" }]}>
+              <Text style={[styles.streakLabel, { color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular" }]}>
                 day streak
               </Text>
             </View>
@@ -135,91 +124,116 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.body}>
-          {/* Daily Challenge Card */}
+          {/* ── Daily Challenge ── */}
           {!challengeLoading && challenge && (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-                Daily Challenge
+                ⚡ Daily Challenge
               </Text>
-              <Pressable
-                style={[
-                  styles.challengeCard,
-                  {
-                    backgroundColor: challenge.completed ? colors.card : colors.primary,
-                    borderColor: challenge.completed ? colors.border : colors.primary,
-                  },
-                ]}
-                onPress={() => !challenge.completed && router.push("/daily-challenge")}
-              >
-                <View style={styles.challengeLeft}>
-                  <View style={[styles.challengeIcon, { backgroundColor: challenge.completed ? colors.border : "rgba(255,255,255,0.15)" }]}>
-                    <Feather
-                      name={challenge.completed ? "check-circle" : "zap"}
-                      size={22}
-                      color={challenge.completed ? colors.correct : colors.gold}
-                    />
+
+              {challenge.completed ? (
+                /* Completed state */
+                <View style={[styles.challengeCard, { backgroundColor: colors.correct + "12", borderColor: colors.correct, borderWidth: 2 }]}>
+                  <View style={styles.challengeLeft}>
+                    <View style={[styles.challengeIcon, { backgroundColor: colors.correct + "20" }]}>
+                      <Feather name="check-circle" size={26} color={colors.correct} />
+                    </View>
+                    <View style={styles.challengeInfo}>
+                      <Text style={[styles.challengeTitle, { color: colors.correct, fontFamily: "Inter_700Bold" }]}>
+                        Challenge Completed! 🎉
+                      </Text>
+                      <Text style={[styles.challengeSubject, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                        Come back tomorrow for a new one
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.challengeInfo}>
-                    <Text style={[
-                      styles.challengeTitle,
-                      {
-                        color: challenge.completed ? colors.primary : "#fff",
-                        fontFamily: "Inter_600SemiBold",
-                      },
-                    ]}>
-                      {challenge.title}
-                    </Text>
-                    <Text style={[
-                      styles.challengeSubject,
-                      {
-                        color: challenge.completed ? colors.mutedForeground : "rgba(255,255,255,0.7)",
-                        fontFamily: "Inter_400Regular",
-                      },
-                    ]}>
-                      {challenge.description}
-                    </Text>
+                  <View style={[styles.doneBadge, { backgroundColor: colors.correct }]}>
+                    <Feather name="check" size={12} color="#fff" />
+                    <Text style={[styles.doneBadgeText, { fontFamily: "Inter_700Bold" }]}>Done</Text>
                   </View>
                 </View>
-                {!challenge.completed && (
-                  <View style={[styles.rewardBadge, { backgroundColor: "rgba(245,197,24,0.18)", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }]}>
-                    <CoinIcon size={16} count={challenge.coinReward} textStyle={{ color: colors.primary, fontSize: 13 }} />
+              ) : (
+                /* Active state */
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.challengeCard,
+                    {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                      transform: [{ translateY: pressed ? 2 : 0 }],
+                    },
+                  ]}
+                  onPress={() => router.push("/daily-challenge")}
+                >
+                  <View style={[styles.challengeShadow, { backgroundColor: "#0D2244" }]} />
+                  <View style={styles.challengeLeft}>
+                    <View style={[styles.challengeIcon, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+                      <Feather name="zap" size={24} color={colors.gold} />
+                    </View>
+                    <View style={styles.challengeInfo}>
+                      <Text style={[styles.challengeTitle, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+                        {challenge.title}
+                      </Text>
+                      <Text style={[styles.challengeSubject, { color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" }]}>
+                        {challenge.description}
+                      </Text>
+                    </View>
                   </View>
-                )}
-                {challenge.completed && (
-                  <Text style={[styles.completedLabel, { color: colors.correct, fontFamily: "Inter_600SemiBold" }]}>
-                    Done
-                  </Text>
-                )}
-              </Pressable>
+                  <View style={[styles.rewardBadge, { backgroundColor: "rgba(245,197,24,0.18)" }]}>
+                    <CoinIcon size={14} count={challenge.coinReward} textStyle={{ color: colors.gold, fontSize: 13 }} />
+                  </View>
+                </Pressable>
+              )}
             </View>
           )}
 
-          {/* Subjects */}
+          {/* ── Subjects ── */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
-              Subjects
+              📚 Subjects
             </Text>
-            <View style={styles.subjectGrid}>
-              {SUBJECTS.map((subject) => (
-                <Pressable
-                  key={subject.key}
-                  style={[
-                    styles.subjectCard,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                  onPress={() => router.push(`/(tabs)/learn?subject=${subject.key}`)}
-                >
-                  <View style={[styles.subjectIcon, { backgroundColor: subject.color + "18" }]}>
-                    <Feather name={subject.icon} size={24} color={subject.color} />
-                  </View>
-                  <Text style={[styles.subjectLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-                    {subject.label}
-                  </Text>
-                  <Text style={[styles.subjectLevel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-                    Level {levelFor(subject.key)}
-                  </Text>
-                </Pressable>
-              ))}
+            <View style={styles.subjectList}>
+              {SUBJECTS.map((subject) => {
+                const level = levelFor(subject.key);
+                return (
+                  <Pressable
+                    key={subject.key}
+                    style={({ pressed }) => [
+                      styles.subjectCard,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.primary,
+                        shadowColor: colors.primary,
+                        transform: [{ translateY: pressed ? 2 : 0 }],
+                      },
+                    ]}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(tabs)/lesson-picker",
+                        params: { subject: subject.key },
+                      })
+                    }
+                  >
+                    <View style={[styles.cardShadow, { backgroundColor: colors.primary }]} />
+                    <View style={styles.cardInner}>
+                      <View style={[styles.iconWrap, { backgroundColor: subject.color, borderColor: subject.color + "60" }]}>
+                        <Text style={styles.subjectEmoji}>{subject.emoji}</Text>
+                      </View>
+                      <View style={styles.cardContent}>
+                        <Text style={[styles.cardTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                          {subject.label}
+                        </Text>
+                        <View style={[styles.levelBadge, { backgroundColor: subject.color }]}>
+                          <Text style={[styles.levelText, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
+                            Lv {level}
+                          </Text>
+                        </View>
+                      </View>
+                      <Feather name="chevron-right" size={18} color={colors.primary} />
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -234,9 +248,9 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   headerTop: {
     flexDirection: "row",
@@ -249,11 +263,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
   },
-  coinsText: { fontSize: 16 },
   streakRow: { marginTop: 16 },
   streakItem: {
     flexDirection: "row",
@@ -264,28 +277,39 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
   },
-  streakCount: { fontSize: 18 },
+  streakCount: { fontSize: 17 },
   streakLabel: { fontSize: 13 },
-  body: { padding: 20, gap: 28 },
+  body: { paddingHorizontal: 20, paddingTop: 24, gap: 28, paddingBottom: 120 },
   section: { gap: 12 },
-  sectionTitle: { fontSize: 18 },
+  sectionTitle: { fontSize: 19 },
+
+  // Daily challenge card
   challengeCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    borderRadius: 18,
-    borderWidth: 1.5,
+    borderRadius: 20,
+    borderWidth: 2,
+    position: "relative",
+    overflow: "hidden",
   },
-  challengeLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  challengeShadow: {
+    position: "absolute",
+    bottom: -4, left: 4, right: -4,
+    height: "100%",
+    borderRadius: 20,
+    zIndex: 0,
+  },
+  challengeLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1, zIndex: 1 },
   challengeIcon: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  challengeInfo: { flex: 1, gap: 2 },
+  challengeInfo: { flex: 1, gap: 3 },
   challengeTitle: { fontSize: 15 },
   challengeSubject: { fontSize: 12 },
   rewardBadge: {
@@ -295,28 +319,66 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
+    zIndex: 1,
   },
-  rewardText: { fontSize: 14 },
-  completedLabel: { fontSize: 13 },
-  subjectGrid: {
+  doneBadge: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
+  doneBadgeText: { color: "#fff", fontSize: 12 },
+
+  // Subject cards — same style as Learn screen
+  subjectList: { gap: 12 },
   subjectCard: {
-    width: "47%",
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    gap: 8,
+    borderRadius: 20,
+    borderWidth: 2.5,
+    position: "relative",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
-  subjectIcon: {
-    width: 48,
-    height: 48,
+  cardShadow: {
+    position: "absolute",
+    bottom: -4, left: 2, right: -2,
+    height: "100%",
+    borderRadius: 20,
+    zIndex: 0,
+  },
+  cardInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    gap: 14,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    zIndex: 1,
+  },
+  iconWrap: {
+    width: 52,
+    height: 52,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
+    borderWidth: 1.5,
   },
-  subjectLabel: { fontSize: 16 },
-  subjectLevel: { fontSize: 12 },
+  subjectEmoji: { fontSize: 24 },
+  cardContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardTitle: { fontSize: 16 },
+  levelBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  levelText: { fontSize: 11 },
 });

@@ -72,6 +72,9 @@ A comprehensive gamified learning mobile app (Expo/React Native) for students up
 ## Database (Drizzle + PostgreSQL)
 Tables: `users`, `animals`, `user_animals`, `subject_progress`, `daily_challenges`, `challenge_completions`, `conversations`, `messages`
 
+### Schema Notes
+- `daily_challenges`: composite unique index on `(date, subject)` — allows one challenge per subject per day. Previously was unique on `date` alone which caused DB errors when multiple subjects tried to insert challenges for the same day.
+
 ## Auth
 - JWT (30-day expiry), signed with `SESSION_SECRET`
 - Token stored in AsyncStorage (`bloom_token`)
