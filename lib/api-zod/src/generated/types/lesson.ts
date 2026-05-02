@@ -8,12 +8,12 @@
 import type { LessonQuestion } from "./lessonQuestion";
 
 export interface Lesson {
-  id: string;
-  subject: string;
-  exerciseType: string;
-  level: number;
-  title: string;
-  content: string;
+  id?: string;
+  subject?: string;
+  exerciseType?: string;
+  level?: number;
+  title?: string;
+  content?: string;
   questions: LessonQuestion[];
-  audioText: string | null;
+  audioText?: string | null;
 }

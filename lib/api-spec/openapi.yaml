@@ -24,6 +24,8 @@ tags:
     description: Daily challenge operations
   - name: progress
     description: Learning progress operations
+  - name: friends
+    description: Friends and social features
   - name: openai
     description: OpenAI AI chat, image, and audio operations
 paths:
@@ -290,6 +292,177 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LeaderboardEntry"
+
+  /users/search:
+    get:
+      operationId: searchUsers
+      tags: [friends]
+      summary: Search users by username or display name
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserSearchResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends/request:
+    post:
+      operationId: sendFriendRequest
+      tags: [friends]
+      summary: Send a friend request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendFriendRequestBody"
+      responses:
+        "201":
+          description: Request sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FriendshipRecord"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends/{id}/respond:
+    put:
+      operationId: respondToFriendRequest
+      tags: [friends]
+      summary: Accept or decline a friend request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RespondFriendRequestBody"
+      responses:
+        "200":
+          description: Updated friendship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FriendshipRecord"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends:
+    get:
+      operationId: getFriends
+      tags: [friends]
+      summary: Get accepted friends
+      responses:
+        "200":
+          description: List of friends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FriendUser"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends/requests:
+    get:
+      operationId: getFriendRequests
+      tags: [friends]
+      summary: Get pending incoming friend requests
+      responses:
+        "200":
+          description: Pending requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FriendRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends/{id}:
+    delete:
+      operationId: removeFriend
+      tags: [friends]
+      summary: Remove or cancel a friendship
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends/leaderboard:
+    get:
+      operationId: getFriendsLeaderboard
+      tags: [friends]
+      summary: Leaderboard for friends only
+      responses:
+        "200":
+          description: Friends leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /lessons/generate:
     post:
@@ -886,14 +1059,7 @@ components:
           type: string
           nullable: true
       required:
-        - id
-        - subject
-        - exerciseType
-        - level
-        - title
-        - content
         - questions
-        - audioText
 
     LessonQuestion:
       type: object
@@ -1180,3 +1346,101 @@ components:
           type: string
       required:
         - error
+
+    UserSearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarData:
+          type: string
+          nullable: true
+      required:
+        - id
+        - username
+        - displayName
+
+    FriendUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarData:
+          type: string
+          nullable: true
+        coins:
+          type: integer
+        streakCount:
+          type: integer
+        friendshipId:
+          type: integer
+      required:
+        - id
+        - username
+        - displayName
+        - coins
+        - streakCount
+
+    FriendRequest:
+      type: object
+      properties:
+        friendshipId:
+          type: integer
+        createdAt:
+          type: string
+        requester:
+          $ref: "#/components/schemas/UserSearchResult"
+      required:
+        - friendshipId
+
+    FriendshipRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        requesterId:
+          type: integer
+        addresseeId:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - requesterId
+        - addresseeId
+        - status
+
+    SendFriendRequestBody:
+      type: object
+      properties:
+        targetUserId:
+          type: integer
+      required:
+        - targetUserId
+
+    RespondFriendRequestBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [accepted, declined]
+      required:
+        - status
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success

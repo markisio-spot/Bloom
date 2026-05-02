@@ -169,14 +169,14 @@ export interface LessonQuestion {
 }
 
 export interface Lesson {
-  id: string;
-  subject: string;
-  exerciseType: string;
-  level: number;
-  title: string;
-  content: string;
+  id?: string;
+  subject?: string;
+  exerciseType?: string;
+  level?: number;
+  title?: string;
+  content?: string;
   questions: LessonQuestion[];
-  audioText: string | null;
+  audioText?: string | null;
 }
 
 export type TTSBodyVoice =
@@ -304,3 +304,58 @@ export interface GenerateOpenaiImageResponse {
 export interface OpenaiError {
   error: string;
 }
+
+export interface UserSearchResult {
+  id: number;
+  username: string;
+  displayName: string;
+  avatarData?: string | null;
+}
+
+export interface FriendUser {
+  id: number;
+  username: string;
+  displayName: string;
+  avatarData?: string | null;
+  coins: number;
+  streakCount: number;
+  friendshipId?: number;
+}
+
+export interface FriendRequest {
+  friendshipId: number;
+  createdAt?: string;
+  requester?: UserSearchResult;
+}
+
+export interface FriendshipRecord {
+  id: number;
+  requesterId: number;
+  addresseeId: number;
+  status: string;
+  createdAt?: string;
+}
+
+export interface SendFriendRequestBody {
+  targetUserId: number;
+}
+
+export type RespondFriendRequestBodyStatus =
+  (typeof RespondFriendRequestBodyStatus)[keyof typeof RespondFriendRequestBodyStatus];
+
+export const RespondFriendRequestBodyStatus = {
+  accepted: "accepted",
+  declined: "declined",
+} as const;
+
+export interface RespondFriendRequestBody {
+  status: RespondFriendRequestBodyStatus;
+}
+
+export interface SuccessResponse {
+  success: boolean;
+}
+
+export type SearchUsersParams = {
+  q: string;
+};

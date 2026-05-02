@@ -193,6 +193,116 @@ export const GetLeaderboardResponseItem = zod.object({
 export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem);
 
 /**
+ * @summary Search users by username or display name
+ */
+export const SearchUsersQueryParams = zod.object({
+  q: zod.coerce.string(),
+});
+
+export const SearchUsersResponseItem = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+  displayName: zod.string(),
+  avatarData: zod.string().nullish(),
+});
+export const SearchUsersResponse = zod.array(SearchUsersResponseItem);
+
+/**
+ * @summary Send a friend request
+ */
+export const SendFriendRequestBody = zod.object({
+  targetUserId: zod.number(),
+});
+
+/**
+ * @summary Accept or decline a friend request
+ */
+export const RespondToFriendRequestParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RespondToFriendRequestBody = zod.object({
+  status: zod.enum(["accepted", "declined"]),
+});
+
+export const RespondToFriendRequestResponse = zod.object({
+  id: zod.number(),
+  requesterId: zod.number(),
+  addresseeId: zod.number(),
+  status: zod.string(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get accepted friends
+ */
+export const GetFriendsResponseItem = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+  displayName: zod.string(),
+  avatarData: zod.string().nullish(),
+  coins: zod.number(),
+  streakCount: zod.number(),
+  friendshipId: zod.number().optional(),
+});
+export const GetFriendsResponse = zod.array(GetFriendsResponseItem);
+
+/**
+ * @summary Get pending incoming friend requests
+ */
+export const GetFriendRequestsResponseItem = zod.object({
+  friendshipId: zod.number(),
+  createdAt: zod.string().optional(),
+  requester: zod
+    .object({
+      id: zod.number(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarData: zod.string().nullish(),
+    })
+    .optional(),
+});
+export const GetFriendRequestsResponse = zod.array(
+  GetFriendRequestsResponseItem,
+);
+
+/**
+ * @summary Remove or cancel a friendship
+ */
+export const RemoveFriendParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RemoveFriendResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary Leaderboard for friends only
+ */
+export const GetFriendsLeaderboardResponseItem = zod.object({
+  userId: zod.number(),
+  displayName: zod.string(),
+  avatarData: zod.string().nullable(),
+  coins: zod.number(),
+  streakCount: zod.number(),
+  animalCount: zod.number(),
+  animals: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      emoji: zod.string(),
+      description: zod.string(),
+      cost: zod.number(),
+      rarity: zod.enum(["common", "uncommon", "rare", "epic", "legendary"]),
+    }),
+  ),
+});
+export const GetFriendsLeaderboardResponse = zod.array(
+  GetFriendsLeaderboardResponseItem,
+);
+
+/**
  * @summary Generate an AI lesson
  */
 export const generateLessonBodyLevelMax = 12;
@@ -214,12 +324,12 @@ export const GenerateLessonBody = zod.object({
 });
 
 export const GenerateLessonResponse = zod.object({
-  id: zod.string(),
-  subject: zod.string(),
-  exerciseType: zod.string(),
-  level: zod.number(),
-  title: zod.string(),
-  content: zod.string(),
+  id: zod.string().optional(),
+  subject: zod.string().optional(),
+  exerciseType: zod.string().optional(),
+  level: zod.number().optional(),
+  title: zod.string().optional(),
+  content: zod.string().optional(),
   questions: zod.array(
     zod.object({
       id: zod.string(),
@@ -243,7 +353,7 @@ export const GenerateLessonResponse = zod.object({
         .nullable(),
     }),
   ),
-  audioText: zod.string().nullable(),
+  audioText: zod.string().nullish(),
 });
 
 /**

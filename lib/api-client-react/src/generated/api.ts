@@ -27,6 +27,9 @@ import type {
   DailyChallenge,
   EarnCoinsBody,
   ErrorResponse,
+  FriendRequest,
+  FriendUser,
+  FriendshipRecord,
   GenerateLessonBody,
   GenerateOpenaiImageBody,
   GenerateOpenaiImageResponse,
@@ -41,17 +44,22 @@ import type {
   PurchaseAnimalBody,
   PurchaseAnimalResponse,
   RegisterBody,
+  RespondFriendRequestBody,
   SaveProgressBody,
+  SearchUsersParams,
+  SendFriendRequestBody,
   SendOpenaiMessageBody,
   SendOpenaiVoiceMessageBody,
   StreakResponse,
   SubjectProgress,
+  SuccessResponse,
   TTSBody,
   TTSResponse,
   TranscribeBody,
   TranscribeResponse,
   UpdateUserBody,
   User,
+  UserSearchResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1008,6 +1016,583 @@ export function useGetLeaderboard<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetLeaderboardQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Search users by username or display name
+ */
+export const getSearchUsersUrl = (params: SearchUsersParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/users/search?${stringifiedParams}`
+    : `/api/users/search`;
+};
+
+export const searchUsers = async (
+  params: SearchUsersParams,
+  options?: RequestInit,
+): Promise<UserSearchResult[]> => {
+  return customFetch<UserSearchResult[]>(getSearchUsersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSearchUsersQueryKey = (params?: SearchUsersParams) => {
+  return [`/api/users/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getSearchUsersQueryOptions = <
+  TData = Awaited<ReturnType<typeof searchUsers>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: SearchUsersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchUsers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSearchUsersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof searchUsers>>> = ({
+    signal,
+  }) => searchUsers(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof searchUsers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SearchUsersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof searchUsers>>
+>;
+export type SearchUsersQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Search users by username or display name
+ */
+
+export function useSearchUsers<
+  TData = Awaited<ReturnType<typeof searchUsers>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: SearchUsersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchUsers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSearchUsersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Send a friend request
+ */
+export const getSendFriendRequestUrl = () => {
+  return `/api/friends/request`;
+};
+
+export const sendFriendRequest = async (
+  sendFriendRequestBody: SendFriendRequestBody,
+  options?: RequestInit,
+): Promise<FriendshipRecord> => {
+  return customFetch<FriendshipRecord>(getSendFriendRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sendFriendRequestBody),
+  });
+};
+
+export const getSendFriendRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendFriendRequest>>,
+    TError,
+    { data: BodyType<SendFriendRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendFriendRequest>>,
+  TError,
+  { data: BodyType<SendFriendRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["sendFriendRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendFriendRequest>>,
+    { data: BodyType<SendFriendRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return sendFriendRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendFriendRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendFriendRequest>>
+>;
+export type SendFriendRequestMutationBody = BodyType<SendFriendRequestBody>;
+export type SendFriendRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Send a friend request
+ */
+export const useSendFriendRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendFriendRequest>>,
+    TError,
+    { data: BodyType<SendFriendRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendFriendRequest>>,
+  TError,
+  { data: BodyType<SendFriendRequestBody> },
+  TContext
+> => {
+  return useMutation(getSendFriendRequestMutationOptions(options));
+};
+
+/**
+ * @summary Accept or decline a friend request
+ */
+export const getRespondToFriendRequestUrl = (id: number) => {
+  return `/api/friends/${id}/respond`;
+};
+
+export const respondToFriendRequest = async (
+  id: number,
+  respondFriendRequestBody: RespondFriendRequestBody,
+  options?: RequestInit,
+): Promise<FriendshipRecord> => {
+  return customFetch<FriendshipRecord>(getRespondToFriendRequestUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(respondFriendRequestBody),
+  });
+};
+
+export const getRespondToFriendRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToFriendRequest>>,
+    TError,
+    { id: number; data: BodyType<RespondFriendRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof respondToFriendRequest>>,
+  TError,
+  { id: number; data: BodyType<RespondFriendRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["respondToFriendRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof respondToFriendRequest>>,
+    { id: number; data: BodyType<RespondFriendRequestBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return respondToFriendRequest(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RespondToFriendRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof respondToFriendRequest>>
+>;
+export type RespondToFriendRequestMutationBody =
+  BodyType<RespondFriendRequestBody>;
+export type RespondToFriendRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Accept or decline a friend request
+ */
+export const useRespondToFriendRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToFriendRequest>>,
+    TError,
+    { id: number; data: BodyType<RespondFriendRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof respondToFriendRequest>>,
+  TError,
+  { id: number; data: BodyType<RespondFriendRequestBody> },
+  TContext
+> => {
+  return useMutation(getRespondToFriendRequestMutationOptions(options));
+};
+
+/**
+ * @summary Get accepted friends
+ */
+export const getGetFriendsUrl = () => {
+  return `/api/friends`;
+};
+
+export const getFriends = async (
+  options?: RequestInit,
+): Promise<FriendUser[]> => {
+  return customFetch<FriendUser[]>(getGetFriendsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFriendsQueryKey = () => {
+  return [`/api/friends`] as const;
+};
+
+export const getGetFriendsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFriends>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFriends>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFriendsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getFriends>>> = ({
+    signal,
+  }) => getFriends({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFriends>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFriendsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFriends>>
+>;
+export type GetFriendsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get accepted friends
+ */
+
+export function useGetFriends<
+  TData = Awaited<ReturnType<typeof getFriends>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFriends>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFriendsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get pending incoming friend requests
+ */
+export const getGetFriendRequestsUrl = () => {
+  return `/api/friends/requests`;
+};
+
+export const getFriendRequests = async (
+  options?: RequestInit,
+): Promise<FriendRequest[]> => {
+  return customFetch<FriendRequest[]>(getGetFriendRequestsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFriendRequestsQueryKey = () => {
+  return [`/api/friends/requests`] as const;
+};
+
+export const getGetFriendRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFriendRequests>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFriendRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFriendRequestsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFriendRequests>>
+  > = ({ signal }) => getFriendRequests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFriendRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFriendRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFriendRequests>>
+>;
+export type GetFriendRequestsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get pending incoming friend requests
+ */
+
+export function useGetFriendRequests<
+  TData = Awaited<ReturnType<typeof getFriendRequests>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFriendRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFriendRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Remove or cancel a friendship
+ */
+export const getRemoveFriendUrl = (id: number) => {
+  return `/api/friends/${id}`;
+};
+
+export const removeFriend = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getRemoveFriendUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRemoveFriendMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeFriend>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeFriend>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["removeFriend"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeFriend>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return removeFriend(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveFriendMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeFriend>>
+>;
+
+export type RemoveFriendMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Remove or cancel a friendship
+ */
+export const useRemoveFriend = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeFriend>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeFriend>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRemoveFriendMutationOptions(options));
+};
+
+/**
+ * @summary Leaderboard for friends only
+ */
+export const getGetFriendsLeaderboardUrl = () => {
+  return `/api/friends/leaderboard`;
+};
+
+export const getFriendsLeaderboard = async (
+  options?: RequestInit,
+): Promise<LeaderboardEntry[]> => {
+  return customFetch<LeaderboardEntry[]>(getGetFriendsLeaderboardUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFriendsLeaderboardQueryKey = () => {
+  return [`/api/friends/leaderboard`] as const;
+};
+
+export const getGetFriendsLeaderboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFriendsLeaderboard>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFriendsLeaderboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFriendsLeaderboardQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFriendsLeaderboard>>
+  > = ({ signal }) => getFriendsLeaderboard({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFriendsLeaderboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFriendsLeaderboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFriendsLeaderboard>>
+>;
+export type GetFriendsLeaderboardQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Leaderboard for friends only
+ */
+
+export function useGetFriendsLeaderboard<
+  TData = Awaited<ReturnType<typeof getFriendsLeaderboard>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFriendsLeaderboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFriendsLeaderboardQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

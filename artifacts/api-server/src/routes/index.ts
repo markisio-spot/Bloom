@@ -7,6 +7,7 @@ import leaderboardRouter from "./leaderboard.js";
 import lessonsRouter from "./lessons.js";
 import dailyChallengeRouter from "./dailyChallenge.js";
 import progressRouter from "./progress.js";
+import friendsRouter from "./friends.js";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(leaderboardRouter);
 router.use(lessonsRouter);
 router.use(dailyChallengeRouter);
 router.use(progressRouter);
+router.use(friendsRouter);
 
 export default router;
