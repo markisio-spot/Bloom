@@ -3,20 +3,35 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Bloom Learning App API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: users
+    description: User profile operations
+  - name: animals
+    description: Animal shop operations
+  - name: leaderboard
+    description: Leaderboard operations
+  - name: lessons
+    description: AI lesson generation
+  - name: dailyChallenge
+    description: Daily challenge operations
+  - name: progress
+    description: Learning progress operations
+  - name: openai
+    description: OpenAI AI chat, image, and audio operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +39,587 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Username taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/me:
+    put:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/me/coins:
+    post:
+      operationId: earnCoins
+      tags: [users]
+      summary: Earn coins after completing an exercise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EarnCoinsBody"
+      responses:
+        "200":
+          description: Updated coin balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoinsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/me/claim-gift:
+    post:
+      operationId: claimMonthlyGift
+      tags: [users]
+      summary: Claim monthly gift coins
+      responses:
+        "200":
+          description: Gift claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimGiftResponse"
+        "400":
+          description: Gift already claimed this month
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/me/streak:
+    post:
+      operationId: checkInStreak
+      tags: [users]
+      summary: Check in for daily streak
+      responses:
+        "200":
+          description: Streak info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreakResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /animals:
+    get:
+      operationId: listAnimals
+      tags: [animals]
+      summary: List all available animals in the shop
+      responses:
+        "200":
+          description: List of animals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Animal"
+
+  /animals/owned:
+    get:
+      operationId: getOwnedAnimals
+      tags: [animals]
+      summary: Get user's owned animals
+      responses:
+        "200":
+          description: User's animals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Animal"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /animals/purchase:
+    post:
+      operationId: purchaseAnimal
+      tags: [animals]
+      summary: Purchase an animal with coins
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseAnimalBody"
+      responses:
+        "200":
+          description: Purchase successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseAnimalResponse"
+        "400":
+          description: Not enough coins or already owned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get leaderboard with user animal collections
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /lessons/generate:
+    post:
+      operationId: generateLesson
+      tags: [lessons]
+      summary: Generate an AI lesson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateLessonBody"
+      responses:
+        "200":
+          description: Generated lesson
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /lessons/tts:
+    post:
+      operationId: textToSpeech
+      tags: [lessons]
+      summary: Convert text to speech for listening exercises
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSBody"
+      responses:
+        "200":
+          description: Audio data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /lessons/transcribe:
+    post:
+      operationId: transcribeSpeech
+      tags: [lessons]
+      summary: Transcribe speech to text for speaking exercises
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranscribeBody"
+      responses:
+        "200":
+          description: Transcription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscribeResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /daily-challenge:
+    get:
+      operationId: getDailyChallenge
+      tags: [dailyChallenge]
+      summary: Get today's daily challenge
+      responses:
+        "200":
+          description: Daily challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyChallenge"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /daily-challenge/complete:
+    post:
+      operationId: completeDailyChallenge
+      tags: [dailyChallenge]
+      summary: Complete the daily challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteChallengeBody"
+      responses:
+        "200":
+          description: Completion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteChallengeResponse"
+        "400":
+          description: Already completed or wrong answers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /progress:
+    get:
+      operationId: getProgress
+      tags: [progress]
+      summary: Get user's learning progress per subject
+      responses:
+        "200":
+          description: Progress per subject
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubjectProgress"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: saveProgress
+      tags: [progress]
+      summary: Save progress after completing a lesson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveProgressBody"
+      responses:
+        "200":
+          description: Updated progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubjectProgress"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpenaiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive streaming response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOpenaiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+
+  /openai/conversations/{id}/voice-messages:
+    post:
+      operationId: sendOpenaiVoiceMessage
+      tags: [openai]
+      summary: Send audio and receive streaming voice response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOpenaiVoiceMessageBody"
+      responses:
+        "200":
+          description: SSE stream of transcript and audio chunks
+          content:
+            text/event-stream: {}
+
+  /openai/generate-image:
+    post:
+      operationId: generateOpenaiImage
+      tags: [openai]
+      summary: Generate an image from a text prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateOpenaiImageBody"
+      responses:
+        "200":
+          description: Generated image data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateOpenaiImageResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +630,553 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    RegisterBody:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        password:
+          type: string
+          minLength: 6
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 30
+      required:
+        - username
+        - password
+        - displayName
+
+    LoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - token
+        - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        coins:
+          type: integer
+        streakCount:
+          type: integer
+        lastActivityDate:
+          type: string
+          nullable: true
+        lastGiftDate:
+          type: string
+          nullable: true
+        avatarData:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - displayName
+        - coins
+        - streakCount
+        - lastActivityDate
+        - lastGiftDate
+        - avatarData
+        - createdAt
+
+    UpdateUserBody:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 30
+        avatarData:
+          type: string
+      required: []
+
+    EarnCoinsBody:
+      type: object
+      properties:
+        amount:
+          type: integer
+          minimum: 0
+      required:
+        - amount
+
+    CoinsResponse:
+      type: object
+      properties:
+        coins:
+          type: integer
+      required:
+        - coins
+
+    ClaimGiftResponse:
+      type: object
+      properties:
+        coins:
+          type: integer
+        message:
+          type: string
+        newBalance:
+          type: integer
+      required:
+        - coins
+        - message
+        - newBalance
+
+    StreakResponse:
+      type: object
+      properties:
+        streakCount:
+          type: integer
+        isNewDay:
+          type: boolean
+        message:
+          type: string
+      required:
+        - streakCount
+        - isNewDay
+        - message
+
+    Animal:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        emoji:
+          type: string
+        description:
+          type: string
+        cost:
+          type: integer
+        rarity:
+          type: string
+          enum: [common, uncommon, rare, epic, legendary]
+      required:
+        - id
+        - name
+        - emoji
+        - description
+        - cost
+        - rarity
+
+    PurchaseAnimalBody:
+      type: object
+      properties:
+        animalId:
+          type: integer
+      required:
+        - animalId
+
+    PurchaseAnimalResponse:
+      type: object
+      properties:
+        animal:
+          $ref: "#/components/schemas/Animal"
+        newBalance:
+          type: integer
+      required:
+        - animal
+        - newBalance
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        userId:
+          type: integer
+        displayName:
+          type: string
+        avatarData:
+          type: string
+          nullable: true
+        coins:
+          type: integer
+        streakCount:
+          type: integer
+        animalCount:
+          type: integer
+        animals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Animal"
+      required:
+        - userId
+        - displayName
+        - avatarData
+        - coins
+        - streakCount
+        - animalCount
+        - animals
+
+    GenerateLessonBody:
+      type: object
+      properties:
+        subject:
+          type: string
+          enum: [math, french, spanish, maltese, italian, grammar, history, geography]
+        exerciseType:
+          type: string
+        level:
+          type: integer
+          minimum: 1
+          maximum: 12
+        language:
+          type: string
+          nullable: true
+      required:
+        - subject
+        - exerciseType
+        - level
+
+    Lesson:
+      type: object
+      properties:
+        id:
+          type: string
+        subject:
+          type: string
+        exerciseType:
+          type: string
+        level:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LessonQuestion"
+        audioText:
+          type: string
+          nullable: true
+      required:
+        - id
+        - subject
+        - exerciseType
+        - level
+        - title
+        - content
+        - questions
+        - audioText
+
+    LessonQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        type:
+          type: string
+          enum: [multiple_choice, fill_blank, match, write, speak]
+        options:
+          type: array
+          items:
+            type: string
+          nullable: true
+        correctAnswer:
+          type: string
+        pairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchPair"
+          nullable: true
+      required:
+        - id
+        - question
+        - type
+        - options
+        - correctAnswer
+        - pairs
+
+    MatchPair:
+      type: object
+      properties:
+        left:
+          type: string
+        right:
+          type: string
+      required:
+        - left
+        - right
+
+    TTSBody:
+      type: object
+      properties:
+        text:
+          type: string
+        voice:
+          type: string
+          enum: [alloy, echo, fable, onyx, nova, shimmer]
+          nullable: true
+      required:
+        - text
+
+    TTSResponse:
+      type: object
+      properties:
+        audio:
+          type: string
+          description: Base64-encoded MP3 audio
+      required:
+        - audio
+
+    TranscribeBody:
+      type: object
+      properties:
+        audio:
+          type: string
+          description: Base64-encoded audio data
+      required:
+        - audio
+
+    TranscribeResponse:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+
+    DailyChallenge:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+        subject:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        coinReward:
+          type: integer
+        completed:
+          type: boolean
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LessonQuestion"
+      required:
+        - id
+        - date
+        - subject
+        - title
+        - description
+        - coinReward
+        - completed
+        - questions
+
+    CompleteChallengeBody:
+      type: object
+      properties:
+        challengeId:
+          type: integer
+        answers:
+          type: array
+          items:
+            type: string
+      required:
+        - challengeId
+        - answers
+
+    CompleteChallengeResponse:
+      type: object
+      properties:
+        coinsEarned:
+          type: integer
+        newBalance:
+          type: integer
+        score:
+          type: integer
+        passed:
+          type: boolean
+      required:
+        - coinsEarned
+        - newBalance
+        - score
+        - passed
+
+    SubjectProgress:
+      type: object
+      properties:
+        subject:
+          type: string
+        currentLevel:
+          type: integer
+        highestScore:
+          type: integer
+        lessonsCompleted:
+          type: integer
+        lastActivityAt:
+          type: string
+          nullable: true
+      required:
+        - subject
+        - currentLevel
+        - highestScore
+        - lessonsCompleted
+        - lastActivityAt
+
+    SaveProgressBody:
+      type: object
+      properties:
+        subject:
+          type: string
+        level:
+          type: integer
+        score:
+          type: integer
+        exerciseType:
+          type: string
+      required:
+        - subject
+        - level
+        - score
+        - exerciseType
+
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+
+    CreateOpenaiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+
+    SendOpenaiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    SendOpenaiVoiceMessageBody:
+      type: object
+      properties:
+        audio:
+          type: string
+          description: Base64-encoded audio data
+      required:
+        - audio
+
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+
+    GenerateOpenaiImageBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+        size:
+          type: string
+          enum: ["1024x1024", "512x512", "256x256"]
+      required:
+        - prompt
+
+    GenerateOpenaiImageResponse:
+      type: object
+      properties:
+        b64_json:
+          type: string
+      required:
+        - b64_json
+
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

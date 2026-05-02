@@ -1,27 +1,100 @@
-# Workspace
+# Bloom Learning App
 
-## Overview
+A comprehensive gamified learning mobile app (Expo/React Native) for students up to Grade 12.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Architecture
 
-## Stack
+### Monorepo Structure
+- `artifacts/bloom/` — Expo React Native mobile app (port 19129)
+- `artifacts/api-server/` — Express API server (port 8080, mounted at `/api`)
+- `lib/db/` — Drizzle ORM + PostgreSQL schemas
+- `lib/api-spec/` — OpenAPI spec (openapi.yaml)
+- `lib/api-client-react/` — Auto-generated React Query hooks (Orval)
+- `lib/api-zod/` — Auto-generated Zod schemas
+- `lib/integrations-openai-ai-server/` — OpenAI integration (server-side)
+- `lib/integrations-openai-ai-react/` — OpenAI integration (React)
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+## Features
 
-## Key Commands
+### Subjects
+- **Math** — AI-generated problems at any grade level (1-12), multiple choice, fill-in-blank, word problems
+- **Languages** — French, Spanish, Maltese, Italian: vocabulary, fill-in-blank, matching, writing, speaking, listening (TTS)
+- **Grammar** — Spelling, punctuation, parts of speech, word definitions
+- **History & Geography** — Story-style readings + comprehension questions
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+### Gamification
+- Coins earned per lesson (10-50 based on score)
+- Animal shop: 25 real animals, 5 rarity tiers (Common → Legendary), tiered costs (45–3500 coins)
+- Leaderboard ranked by animal collection
+- Daily streaks (check-in every day)
+- Daily AI-generated challenge (+50 coins)
+- Monthly free gift coins
+- Starter coins: 100 on registration
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+### Avatar Builder
+- Skin tone, hair color, eye color, expression, clothing customization
+- Stored as JSON in `avatarData` field
+- Displayed as a simple illustrated face
+
+## Mobile Screens (Expo Router)
+- `/` — Welcome/onboarding (redirects to tabs if logged in)
+- `/login` — Login with username/password
+- `/register` — Register (starter 100 coins)
+- `/(tabs)/` — Home: greeting, streak, daily challenge card, subject grid
+- `/(tabs)/learn` — Subject picker
+- `/(tabs)/lesson-picker` — Exercise type + language/level picker
+- `/(tabs)/lesson` — Active AI lesson screen (all question types)
+- `/(tabs)/shop` — Animal shop with purchase flow
+- `/(tabs)/leaderboard` — Community rankings
+- `/(tabs)/profile` — Stats, avatar builder, progress, collection, logout
+- `/daily-challenge` — Full-screen daily challenge quiz
+
+## API Routes
+- `POST /api/auth/register` — Register (returns JWT + user)
+- `POST /api/auth/login` — Login (returns JWT + user)
+- `GET /api/auth/me` — Get current user
+- `PUT /api/users/me` — Update display name / avatar
+- `POST /api/users/me/coins` — Earn coins
+- `POST /api/users/me/streak` — Check-in streak
+- `POST /api/users/me/claim-gift` — Monthly gift
+- `GET /api/animals` — List all animals
+- `GET /api/animals/owned` — User's owned animals
+- `POST /api/animals/purchase` — Buy an animal
+- `GET /api/leaderboard` — Top 50 users by animal count
+- `POST /api/lessons/generate` — AI lesson generation (OpenAI GPT)
+- `POST /api/lessons/tts` — Text-to-speech (base64 MP3)
+- `POST /api/lessons/transcribe` — Speech-to-text
+- `GET /api/daily-challenge` — Today's challenge (auto-generated)
+- `POST /api/daily-challenge/complete` — Submit answers
+- `GET /api/progress` — User's subject progress
+- `POST /api/progress` — Save lesson progress
+
+## Database (Drizzle + PostgreSQL)
+Tables: `users`, `animals`, `user_animals`, `subject_progress`, `daily_challenges`, `challenge_completions`, `conversations`, `messages`
+
+## Auth
+- JWT (30-day expiry), signed with `SESSION_SECRET`
+- Token stored in AsyncStorage (`bloom_token`)
+- `setAuthTokenGetter` used so all API hooks auto-send the token
+
+## Design Tokens
+- Primary: `#1B3A6B` (dark navy blue)
+- Gold/Accent: `#F5C518`
+- Correct: `#22C55E`
+- Wrong: `#EF4444`
+- Background: `#FFFFFF`
+- Font: Inter (Regular, Medium, SemiBold, Bold)
+
+## Key Dependencies
+- `expo-av` — Audio playback (TTS) and recording (STT)
+- `@tanstack/react-query` — Data fetching and caching
+- `@react-native-async-storage/async-storage` — Token persistence
+- `bcryptjs` + `jsonwebtoken` — Auth on API server
+- `drizzle-orm` — Database ORM
+- `@workspace/api-client-react` — All API hooks (auto-generated)
+
+## Environment Variables
+- `SESSION_SECRET` — JWT signing secret
+- `DATABASE_URL` — PostgreSQL connection string
+- `OPENAI_API_KEY` — via Replit OpenAI integration
+- `EXPO_PUBLIC_DOMAIN` — used to call API from the app

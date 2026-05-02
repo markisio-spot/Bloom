@@ -1,0 +1,158 @@
+import { Router } from "express";
+import { openai } from "@workspace/integrations-openai-ai-server";
+import { textToSpeech, speechToText } from "@workspace/integrations-openai-ai-server/audio";
+import { authMiddleware, type AuthRequest } from "../middlewares/auth.js";
+
+const router = Router();
+
+type Subject = "math" | "french" | "spanish" | "maltese" | "italian" | "grammar" | "history" | "geography";
+
+function buildLessonPrompt(subject: Subject, exerciseType: string, level: number): string {
+  const baseInstructions = `
+You are a lesson generator for Bloom, a learning app for students up to grade 12.
+Generate a lesson for: Subject="${subject}", Exercise Type="${exerciseType}", Level/Grade=${level}.
+Return a JSON object ONLY (no markdown fences) with this exact structure:
+{
+  "id": "<unique string>",
+  "subject": "${subject}",
+  "exerciseType": "${exerciseType}",
+  "level": ${level},
+  "title": "<short lesson title>",
+  "content": "<brief lesson intro or story (2-4 sentences max for exercises, longer for reading passages)>",
+  "audioText": null,
+  "questions": [
+    {
+      "id": "<unique string>",
+      "question": "<question text>",
+      "type": "<multiple_choice|fill_blank|match|write|speak>",
+      "options": ["<option1>", "<option2>", "<option3>", "<option4>"] or null,
+      "correctAnswer": "<correct answer>",
+      "pairs": null
+    }
+  ]
+}
+`;
+
+  const subjectPrompts: Record<Subject, Record<string, string>> = {
+    math: {
+      multiple_choice: `Generate 5 grade-${level} math problems (arithmetic, algebra, or geometry appropriate for the level). Each with 4 multiple choice options. Make them progressively harder.`,
+      fill_blank: `Generate 5 grade-${level} math equations with a blank to fill in. For example "5 + __ = 12". Use type "fill_blank".`,
+      word_problem: `Generate 3 grade-${level} math word problems. Use type "multiple_choice" with 4 options each.`,
+    },
+    french: {
+      vocabulary: `Generate 6 French vocabulary flashcard questions for grade ${level}. Each question shows a French word and asks for the English translation (or vice versa). Use type "multiple_choice".`,
+      fill_blank: `Generate 5 French fill-in-the-blank sentences. A French sentence with one word missing. Use type "fill_blank". For beginners (grade 1-3) use very simple sentences.`,
+      matching: `Generate a matching exercise with 5 pairs of French-English words. Use type "match" and set "pairs" to an array of {left: "French", right: "English"} objects. Set "options" to null. Set correctAnswer to "matched".`,
+      writing: `Generate 4 writing exercises where the student writes a word or short sentence in French. Provide the English prompt and the correct French answer. Use type "write".`,
+      speaking: `Generate 3 speaking exercises where the student reads a French phrase aloud. Provide the phrase. Use type "speak". Set audioText in the response to the French phrases joined by ". ".`,
+      listening: `Generate 4 listening exercises where the student hears a French phrase and picks the correct English translation. Use type "multiple_choice" with 4 options. Set audioText in the response to the French phrases that should be read aloud, joined by ". ".`,
+    },
+    spanish: {
+      vocabulary: `Generate 6 Spanish vocabulary flashcard questions for grade ${level}. Each question shows a Spanish word and asks for the English translation. Use type "multiple_choice".`,
+      fill_blank: `Generate 5 Spanish fill-in-the-blank sentences. A Spanish sentence with one word missing. Use type "fill_blank".`,
+      matching: `Generate a matching exercise with 5 pairs of Spanish-English words. Use type "match" and set "pairs" to an array of {left: "Spanish", right: "English"} objects.`,
+      writing: `Generate 4 writing exercises where the student writes a word or sentence in Spanish. Provide the English prompt. Use type "write".`,
+      speaking: `Generate 3 speaking exercises where the student reads a Spanish phrase aloud. Use type "speak". Set audioText to the Spanish phrases.`,
+      listening: `Generate 4 listening exercises where the student hears a Spanish phrase and picks the correct English translation. Use type "multiple_choice" with 4 options. Set audioText to the Spanish phrases.`,
+    },
+    maltese: {
+      vocabulary: `Generate 6 Maltese vocabulary flashcard questions for grade ${level}. Maltese is the national language of Malta. Each question shows a Maltese word and asks for the English translation. Use type "multiple_choice".`,
+      fill_blank: `Generate 5 Maltese fill-in-the-blank sentences. Use type "fill_blank".`,
+      matching: `Generate a matching exercise with 5 pairs of Maltese-English words. Use type "match" and set "pairs" to {left: "Maltese", right: "English"} objects.`,
+      writing: `Generate 4 writing exercises where the student writes a Maltese word or phrase. Use type "write".`,
+      speaking: `Generate 3 speaking exercises where the student reads a Maltese phrase aloud. Use type "speak". Set audioText to the Maltese phrases.`,
+      listening: `Generate 4 listening exercises where the student hears a Maltese phrase and picks the correct English translation. Use type "multiple_choice" with 4 options. Set audioText to the Maltese phrases.`,
+    },
+    italian: {
+      vocabulary: `Generate 6 Italian vocabulary flashcard questions for grade ${level}. Each question shows an Italian word and asks for the English translation. Use type "multiple_choice".`,
+      fill_blank: `Generate 5 Italian fill-in-the-blank sentences. Use type "fill_blank".`,
+      matching: `Generate a matching exercise with 5 pairs of Italian-English words. Use type "match" and set "pairs" to {left: "Italian", right: "English"} objects.`,
+      writing: `Generate 4 writing exercises where the student writes an Italian word or phrase. Use type "write".`,
+      speaking: `Generate 3 speaking exercises where the student reads an Italian phrase aloud. Use type "speak". Set audioText to the Italian phrases.`,
+      listening: `Generate 4 listening exercises where the student hears an Italian phrase and picks the correct English translation. Use type "multiple_choice" with 4 options. Set audioText to the Italian phrases.`,
+    },
+    grammar: {
+      spelling: `Generate 5 spelling questions appropriate for grade ${level} English. Show a misspelled or correctly spelled word and ask if it's correct, or show the definition and ask to pick the correct spelling. Use type "multiple_choice" with 4 options.`,
+      punctuation: `Generate 5 punctuation exercises for grade ${level}. Show a sentence and ask which version has correct punctuation, or identify the punctuation error. Use type "multiple_choice".`,
+      parts_of_speech: `Generate 5 parts-of-speech exercises for grade ${level}. Identify nouns, verbs, adjectives, adverbs, etc. Use type "multiple_choice" with 4 options.`,
+      word_definitions: `Generate 5 word definition exercises for grade ${level} vocabulary. Show a word and ask for its definition, or show a definition and ask for the word. Use type "multiple_choice" with 4 options. Use vocabulary appropriate for grade ${level}.`,
+    },
+    history: {
+      reading: `Write a SHORT, engaging, story-like history reading passage for grade ${level} students (about 120-180 words). Make it vivid and narrative, like a story, not a textbook. Choose any interesting historical event or period. Then generate 4 comprehension questions about the IMPORTANT facts in the passage. Use type "multiple_choice" with 4 options. Put the story in "content", and questions in "questions".`,
+    },
+    geography: {
+      reading: `Write a SHORT, engaging, story-like geography reading passage for grade ${level} students (about 120-180 words). Make it vivid and interesting, like an adventure, not a textbook. Choose any interesting geographical feature, country, or natural phenomenon. Then generate 4 comprehension questions about the IMPORTANT facts. Use type "multiple_choice" with 4 options. Put the story in "content", and questions in "questions".`,
+    },
+  };
+
+  const subjectMap = subjectPrompts[subject] ?? {};
+  const specificPrompt = subjectMap[exerciseType] ?? `Generate 5 grade-${level} exercises for "${subject}" subject, "${exerciseType}" type. Use appropriate question types.`;
+
+  return baseInstructions + "\n\n" + specificPrompt;
+}
+
+router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) => {
+  const { subject, exerciseType, level } = req.body as {
+    subject?: Subject;
+    exerciseType?: string;
+    level?: number;
+  };
+
+  if (!subject || !exerciseType || !level) {
+    res.status(400).json({ error: "subject, exerciseType, and level are required" });
+    return;
+  }
+
+  const prompt = buildLessonPrompt(subject, exerciseType, level);
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-5-mini",
+    max_completion_tokens: 2000,
+    messages: [
+      { role: "system", content: "You are a lesson generator for an educational app. Always respond with valid JSON only, no markdown, no code fences." },
+      { role: "user", content: prompt },
+    ],
+  });
+
+  const raw = completion.choices[0]?.message?.content ?? "{}";
+  let lesson: unknown;
+  try {
+    lesson = JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    lesson = match ? JSON.parse(match[0]) : { error: "Failed to generate lesson" };
+  }
+
+  res.json(lesson);
+});
+
+router.post("/lessons/tts", authMiddleware, async (req: AuthRequest, res) => {
+  const { text, voice = "nova" } = req.body as {
+    text?: string;
+    voice?: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";
+  };
+
+  if (!text) {
+    res.status(400).json({ error: "text is required" });
+    return;
+  }
+
+  const audioBuffer = await textToSpeech(text, voice ?? "nova", "mp3");
+  const base64 = Buffer.from(audioBuffer).toString("base64");
+  res.json({ audio: base64 });
+});
+
+router.post("/lessons/transcribe", authMiddleware, async (req: AuthRequest, res) => {
+  const { audio } = req.body as { audio?: string };
+
+  if (!audio) {
+    res.status(400).json({ error: "audio is required" });
+    return;
+  }
+
+  const audioBuffer = Buffer.from(audio, "base64");
+  const text = await speechToText(audioBuffer, "wav");
+  res.json({ text });
+});
+
+export default router;
