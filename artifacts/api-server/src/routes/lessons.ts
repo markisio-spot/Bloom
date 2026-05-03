@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { openai } from "@workspace/integrations-openai-ai-server";
 import { textToSpeech, speechToText } from "@workspace/integrations-openai-ai-server/audio";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth.js";
 import { db, questionsTable } from "@workspace/db";
@@ -237,48 +236,27 @@ router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) =
 
   const [{ qcount }] = await db.select({ qcount: sql<number>`count(*)` }).from(questionsTable).where(and(...conditions));
 
-  if (Number(qcount) >= 10) {
-    const dbRows = await db.select().from(questionsTable)
-      .where(and(...conditions))
-      .orderBy(sql`RANDOM()`)
-      .limit(10);
-
-    const dbLesson = {
-      id: `db-${Date.now()}`,
-      subject,
-      exerciseType: type,
-      level: lvl,
-      title: `${subject.charAt(0).toUpperCase() + subject.slice(1)} — Grade ${lvl}`,
-      content: "",
-      audioText: null,
-      questions: dbRows.map((r) => r.questionData),
-    };
-    res.json(dbLesson);
+  if (Number(qcount) < 10) {
+    res.status(404).json({ error: "Not enough questions available for this subject and grade. Please check back later." });
     return;
   }
 
-  // ── Fallback: AI generation ───────────────────────────────────────────────────
-  const prompt = buildLessonPrompt(subject, type, lvl, languageSection ?? 1);
+  const dbRows = await db.select().from(questionsTable)
+    .where(and(...conditions))
+    .orderBy(sql`RANDOM()`)
+    .limit(10);
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    max_completion_tokens: 5000,
-    messages: [
-      { role: "system", content: "You are a lesson generator. Respond with valid JSON only, no markdown." },
-      { role: "user", content: prompt },
-    ],
-  });
-
-  const raw = completion.choices[0]?.message?.content ?? "{}";
-  let lesson: unknown;
-  try {
-    lesson = JSON.parse(raw);
-  } catch {
-    const match = raw.match(/\{[\s\S]*\}/);
-    lesson = match ? JSON.parse(match[0]) : {};
-  }
-
-  res.json(lesson);
+  const dbLesson = {
+    id: `db-${Date.now()}`,
+    subject,
+    exerciseType: type,
+    level: lvl,
+    title: `${subject.charAt(0).toUpperCase() + subject.slice(1)} — Grade ${lvl}`,
+    content: "",
+    audioText: null,
+    questions: dbRows.map((r) => r.questionData),
+  };
+  res.json(dbLesson);
 });
 
 router.post("/lessons/tts", authMiddleware, async (req: AuthRequest, res) => {
