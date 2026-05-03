@@ -51,7 +51,7 @@ function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-20 h-20 bg-secondary rounded-2xl flex items-center justify-center text-primary font-black text-3xl shadow-lg transform rotate-3">1</div>
-              <h3 className="text-2xl font-bold text-primary">Learn with AI</h3>
+              <h3 className="text-2xl font-bold text-primary">Personalised Learning</h3>
               <p className="text-muted-foreground font-medium text-lg">Personalized lessons in Math, History, Languages and more. The questions adapt to your level.</p>
             </div>
             <div className="flex flex-col items-center text-center space-y-4">

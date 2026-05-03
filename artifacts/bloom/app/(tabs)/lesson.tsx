@@ -352,7 +352,7 @@ export default function LessonScreen() {
             Generating your lesson...
           </Text>
           <Text style={[styles.loadingSubtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-            Powered by AI ✨
+            Hand-crafted questions ✨
           </Text>
           <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} size="large" />
         </View>

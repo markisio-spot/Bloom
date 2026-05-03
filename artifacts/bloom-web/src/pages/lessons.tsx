@@ -200,7 +200,7 @@ export default function Lessons() {
       <Card className="shadow-lg border-primary/10">
         <CardHeader>
           <CardTitle className="text-3xl font-extrabold text-primary">Start a Lesson</CardTitle>
-          <CardDescription className="text-lg">Pick a subject and grade to generate a custom AI lesson.</CardDescription>
+          <CardDescription className="text-lg">Pick a subject and grade to start a lesson.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
