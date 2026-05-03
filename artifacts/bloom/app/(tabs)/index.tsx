@@ -97,7 +97,7 @@ export default function HomeScreen() {
         {/* ── Navy Header ── */}
         <View style={[styles.header, { backgroundColor: colors.primary }]}>
           <View style={styles.headerTop}>
-            <View>
+            <View style={{ flex: 1, marginRight: 12 }}>
               <Text style={[styles.greeting, { color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular" }]}>
                 Good day,
               </Text>

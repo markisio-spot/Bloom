@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
 import {
   useEarnCoins,
   useGenerateLesson,
   useSaveProgress,
   useTextToSpeech,
+  useTranscribeSpeech,
   type GenerateLessonBodySubject,
 } from "@workspace/api-client-react";
 import { sendLessonCompleteNotification } from "@/utils/notifications";
@@ -132,6 +134,8 @@ export default function LessonScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionFailed, setTranscriptionFailed] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const pronunciationSoundRef = useRef<Audio.Sound | null>(null);
   const selfSoundRef = useRef<Audio.Sound | null>(null);
@@ -192,6 +196,24 @@ export default function LessonScreen() {
   });
 
   const saveProgressMutation = useSaveProgress({ mutation: {} });
+
+  const transcribeMutation = useTranscribeSpeech({
+    mutation: {
+      onSuccess: (data) => {
+        setIsTranscribing(false);
+        const transcript = (data.transcript ?? "").toLowerCase().trim();
+        const expected = (lesson?.questions[currentQ]?.correctAnswer ?? "").toLowerCase().trim();
+        const gotIt = transcript === expected
+          || transcript.includes(expected)
+          || expected.includes(transcript);
+        handleSpeakSubmit(gotIt);
+      },
+      onError: () => {
+        setIsTranscribing(false);
+        setTranscriptionFailed(true);
+      },
+    },
+  });
 
   const pronounceMutation = useTextToSpeech({
     mutation: {
@@ -760,6 +782,8 @@ export default function LessonScreen() {
     setRecordingUri(null);
     setIsRecording(false);
     setRecordingObj(null);
+    setIsTranscribing(false);
+    setTranscriptionFailed(false);
     if (currentQ === questions.length - 1) {
       const finalPct = Math.round((score / questions.length) * 100);
       const baseCoins = Math.max(10, Math.round((finalPct / 100) * 50));
@@ -800,9 +824,22 @@ export default function LessonScreen() {
       await recordingObj.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
       const uri = recordingObj.getURI();
-      setRecordingUri(uri ?? null);
       setRecordingObj(null);
       setIsRecording(false);
+      if (uri) {
+        setRecordingUri(uri);
+        setIsTranscribing(true);
+        setTranscriptionFailed(false);
+        try {
+          const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          transcribeMutation.mutate({ data: { audioBase64: base64 } });
+        } catch {
+          setIsTranscribing(false);
+          setTranscriptionFailed(true);
+        }
+      }
     } catch { setIsRecording(false); }
   };
 
@@ -820,6 +857,8 @@ export default function LessonScreen() {
     setRecordingUri(null);
     setIsRecording(false);
     setRecordingObj(null);
+    setIsTranscribing(false);
+    setTranscriptionFailed(false);
   };
 
   const handleSpeakSubmit = (gotIt: boolean) => {
@@ -1062,10 +1101,21 @@ export default function LessonScreen() {
               </Text>
             </View>
 
-            {/* Record / playback */}
+            {/* Record / transcribing / playback */}
             {!isSubmitted && (
               <>
-                {!recordingUri ? (
+                {/* Transcribing spinner */}
+                {isTranscribing && (
+                  <View style={[styles.transcribingCard, { backgroundColor: colors.primary + "0E", borderColor: colors.primary + "30" }]}>
+                    <ActivityIndicator color={colors.primary} size="small" />
+                    <Text style={[styles.transcribingText, { color: colors.primary, fontFamily: "Inter_500Medium" }]}>
+                      Listening to your answer...
+                    </Text>
+                  </View>
+                )}
+
+                {/* Record button (before any recording) */}
+                {!recordingUri && !isTranscribing && (
                   <Pressable
                     style={[
                       styles.recordBtn,
@@ -1081,7 +1131,10 @@ export default function LessonScreen() {
                       {isRecording ? "Stop Recording" : "🎤 Record Yourself"}
                     </Text>
                   </Pressable>
-                ) : (
+                )}
+
+                {/* After recording: show playback + retry while transcription runs or if it failed */}
+                {recordingUri && !isTranscribing && (
                   <View style={styles.playbackRow}>
                     <Pressable
                       style={[styles.playbackBtn, { backgroundColor: colors.card, borderColor: colors.primary + "50" }]}
@@ -1112,9 +1165,12 @@ export default function LessonScreen() {
               </>
             )}
 
-            {/* Self-assessment (after recording) */}
-            {recordingUri && !isSubmitted && (
+            {/* Transcription failed fallback — manual self-assessment */}
+            {transcriptionFailed && recordingUri && !isSubmitted && (
               <View style={styles.speakAssessRow}>
+                <Text style={[styles.transcribingText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 8 }]}>
+                  Couldn't auto-validate. Did you say it correctly?
+                </Text>
                 <Pressable
                   style={[styles.gotItBtn, { backgroundColor: colors.correct }]}
                   onPress={() => handleSpeakSubmit(true)}
@@ -1416,6 +1472,11 @@ const styles = StyleSheet.create({
     gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5,
   },
   playbackBtnText: { fontSize: 13 },
+  transcribingCard: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    padding: 16, borderRadius: 14, borderWidth: 1.5,
+  },
+  transcribingText: { fontSize: 14, textAlign: "center" },
   speakAssessRow: { gap: 10 },
   gotItBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",

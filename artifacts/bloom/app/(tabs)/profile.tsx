@@ -224,17 +224,25 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── Monthly Gift ── */}
-        {canClaimGift && (
-          <Pressable style={[styles.giftCard, { backgroundColor: colors.gold + "15", borderColor: colors.gold }]}
-            onPress={() => claimGiftMutation.mutate(undefined)} disabled={claimGiftMutation.isPending}>
-            <Text style={{ fontSize: 24 }}>🎁</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.giftTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>Monthly Gift Available!</Text>
-              <Text style={[styles.giftSubtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>Claim your free coins</Text>
-            </View>
-            <Feather name="chevron-right" size={18} color={colors.gold} />
-          </Pressable>
-        )}
+        <Pressable
+          style={[styles.giftCard, { backgroundColor: colors.gold + "15", borderColor: colors.gold, opacity: canClaimGift ? 1 : 0.55 }]}
+          onPress={() => canClaimGift && claimGiftMutation.mutate(undefined)}
+          disabled={!canClaimGift || claimGiftMutation.isPending}
+        >
+          <Text style={{ fontSize: 24 }}>🎁</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.giftTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+              {canClaimGift ? "Monthly Gift Available!" : "Monthly Gift Claimed"}
+            </Text>
+            <Text style={[styles.giftSubtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+              {canClaimGift ? "Claim your free coins" : "Come back next month!"}
+            </Text>
+          </View>
+          {canClaimGift
+            ? <Feather name="chevron-right" size={18} color={colors.gold} />
+            : <Feather name="check-circle" size={18} color={colors.gold} />
+          }
+        </Pressable>
         {giftMessage ? (
           <View style={[styles.giftMsg, { backgroundColor: colors.correct + "15", borderColor: colors.correct }]}>
             <Feather name="check-circle" size={16} color={colors.correct} />
@@ -554,7 +562,7 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   editNameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   nameInput: { flex: 1, borderBottomWidth: 1, fontSize: 18, paddingVertical: 4 },
-  displayName: { fontSize: 22 },
+  displayName: { fontSize: 22, flex: 1 },
   username: { fontSize: 13 },
   statsRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 },
   statItem: { flexDirection: "row", alignItems: "center", gap: 5 },
