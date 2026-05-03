@@ -11,7 +11,7 @@ export interface SeedlingData {
 export const DEFAULT_SEEDLING: SeedlingData = {
   expression: "happy",
   petalColor: "#F5C518",
-  potColor: "#ffffff",
+  potColor: "#C17A5F",
 };
 
 export function getStage(coins: number): 1 | 2 | 3 | 4 {

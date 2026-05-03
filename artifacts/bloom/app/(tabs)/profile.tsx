@@ -59,7 +59,7 @@ const PETAL_COLORS = [
 ];
 
 const POT_COLORS = [
-  "#ffffff", "#1B3A6B", "#F5C518", "#C17A5F",
+  "#C17A5F", "#1B3A6B", "#F5C518", "#ffffff",
   "#86EFAC", "#A78BFA", "#FDA4AF", "#94A3B8",
 ];
 
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 20, marginBottom: 24 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
   sectionTitle: { fontSize: 20, marginBottom: 14 },
-  builderCard: { borderRadius: 20, borderWidth: 2.5, padding: 16, gap: 16, position: "relative", overflow: "hidden" },
+  builderCard: { borderRadius: 20, borderWidth: 2.5, padding: 16, gap: 16, position: "relative" },
   cardShadow2: { position: "absolute", bottom: -4, left: 4, right: -4, height: "100%", borderRadius: 20, backgroundColor: "#1B3A6B", zIndex: -1 },
   sproutPreviewRow: { flexDirection: "row", alignItems: "flex-start", gap: 16 },
   stageInfoCol: { flex: 1, gap: 8 },
