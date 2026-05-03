@@ -125,6 +125,33 @@ Make progressively harder. Set "pairs" to null for all. Set "speakText" to null 
   const langName = LANGUAGE_NAMES[subject as LanguageSubject] ?? subject;
   const section = LANGUAGE_SECTIONS.find((s) => s.num === languageSection) ?? LANGUAGE_SECTIONS[0]!;
 
+  const langBaseInstructions = `
+You are a lesson generator for Bloom, a learning app for students up to grade 12.
+Generate a lesson and return a JSON object ONLY (no markdown fences) with this exact structure:
+{
+  "id": "<unique string>",
+  "subject": "${subject}",
+  "exerciseType": "${exerciseType}",
+  "level": ${level},
+  "title": "<short lesson title>",
+  "content": "<brief lesson intro (2-4 sentences)>",
+  "audioText": null,
+  "vocabulary": [
+    {"word": "<${langName} word/phrase>", "meaning": "<English translation>", "pronunciation": "<phonetic e.g. bon-ZHOOR>"},
+    ... exactly 6-8 entries covering the key words/phrases for this section
+  ],
+  "questions": [ ... ]
+}
+
+For the "vocabulary" array: include exactly 6-8 key ${langName} words or phrases that will appear in this section's questions.
+- "word": the exact ${langName} word/phrase as written
+- "meaning": the English translation (concise, 1-4 words)
+- "pronunciation": a simple phonetic spelling for English speakers, with stressed syllables in CAPS
+  Examples: "bonjour" → "bon-ZHOOR", "buenos días" → "BWEH-nos DEE-ahs", "ciao" → "CHOW", "merci" → "mehr-SEE"
+
+${QUESTION_FORMAT}
+`;
+
   const sectionPrompts: Record<string, string> = {
     vocabulary: `Generate 6 ${langName} vocabulary questions focused on the topic "${section.name}".
 Each question shows a ${langName} word/phrase and asks for the English meaning (or vice versa).
@@ -164,7 +191,7 @@ Focus ALL questions specifically on this topic/section. Do not mix in unrelated 
 Tailor difficulty to a student who is learning ${langName} at the ${section.num <= 6 ? "beginner" : section.num <= 12 ? "intermediate" : "advanced"} level.
 `;
 
-  return baseInstructions + sectionContext + "\n\nSpecific instructions:\n" + specificPrompt;
+  return langBaseInstructions + sectionContext + "\n\nSpecific instructions:\n" + specificPrompt;
 }
 
 export { buildLessonPrompt };

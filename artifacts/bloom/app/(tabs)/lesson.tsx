@@ -39,6 +39,12 @@ interface LessonQuestion {
   pairs?: Array<{ left: string; right: string }> | null;
 }
 
+interface VocabItem {
+  word: string;
+  meaning: string;
+  pronunciation: string;
+}
+
 interface Lesson {
   id?: string;
   subject: string;
@@ -47,6 +53,7 @@ interface Lesson {
   title?: string;
   content?: string;
   audioText?: string | null;
+  vocabulary?: VocabItem[];
   questions: LessonQuestion[];
 }
 
@@ -115,12 +122,13 @@ export default function LessonScreen() {
   const [textInput, setTextInput] = useState("");
   const [matchSelected, setMatchSelected] = useState<string | null>(null);
   const [matchedPairs, setMatchedPairs] = useState<Array<[string, string]>>([]);
-  const [phase, setPhase] = useState<"loading" | "audio" | "quiz" | "results" | "error">("loading");
+  const [phase, setPhase] = useState<"loading" | "audio" | "vocab" | "quiz" | "results" | "error">("loading");
   const [score, setScore] = useState(0);
   const [hintsUsed, setHintsUsed] = useState<Set<number>>(new Set());
   const [hintVisible, setHintVisible] = useState(false);
   const [finalCoinsEarned, setFinalCoinsEarned] = useState(0);
   const [isPronouncing, setIsPronouncing] = useState(false);
+  const [vocabPlayingIdx, setVocabPlayingIdx] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
@@ -135,8 +143,12 @@ export default function LessonScreen() {
   const generateMutation = useGenerateLesson({
     mutation: {
       onSuccess: (data) => {
-        setLesson(data as unknown as Lesson);
-        if ((data as unknown as Lesson).audioText && params.exerciseType === "listening") {
+        const l = data as unknown as Lesson;
+        setLesson(l);
+        const isLang = ["french", "spanish", "maltese", "italian"].includes(params.subject ?? "");
+        if (isLang && (l.vocabulary?.length ?? 0) > 0) {
+          setPhase("vocab");
+        } else if (l.audioText && params.exerciseType === "listening") {
           setPhase("audio");
         } else {
           setPhase("quiz");
@@ -222,6 +234,7 @@ export default function LessonScreen() {
     setHintVisible(false);
     setFinalCoinsEarned(0);
     setRecordingUri(null);
+    setVocabPlayingIdx(null);
     progressAnim.setValue(0);
     generateMutation.mutate({
       data: {
@@ -352,6 +365,101 @@ export default function LessonScreen() {
             <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
               {audioPlaying ? "Listening..." : "Start Questions"}
             </Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Vocabulary intro ──
+  if (phase === "vocab") {
+    const vocab = lesson?.vocabulary ?? [];
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+        <View style={[styles.vocabHeader, { backgroundColor: colors.primary }]}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+            <Feather name="arrow-left" size={22} color="#fff" />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.vocabHeaderTitle, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
+              New Words
+            </Text>
+            <Text style={[styles.vocabHeaderSub, { color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular" }]}>
+              {lesson?.title ?? "Vocabulary"}
+            </Text>
+          </View>
+          <View style={[styles.vocabBadge, { backgroundColor: colors.gold }]}>
+            <Text style={[styles.vocabBadgeText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+              {vocab.length} words
+            </Text>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.vocabContent} showsVerticalScrollIndicator={false}>
+          <Text style={[styles.vocabIntro, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+            Study these words before your quiz. Tap the speaker to hear how they sound.
+          </Text>
+
+          {vocab.map((item, idx) => {
+            const isPlaying = vocabPlayingIdx === idx && isPronouncing;
+            return (
+              <View
+                key={idx}
+                style={[
+                  styles.vocabCard,
+                  {
+                    backgroundColor: isPlaying ? colors.primary + "0D" : colors.card,
+                    borderColor: isPlaying ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={[styles.vocabWord, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                    {item.word}
+                  </Text>
+                  <Text style={[styles.vocabPhonetic, { color: colors.gold, fontFamily: "Inter_400Regular" }]}>
+                    {item.pronunciation}
+                  </Text>
+                  <Text style={[styles.vocabMeaning, { color: colors.foreground, fontFamily: "Inter_400Regular" }]}>
+                    {item.meaning}
+                  </Text>
+                </View>
+                <Pressable
+                  style={[
+                    styles.vocabSpeakBtn,
+                    { backgroundColor: isPlaying ? colors.primary : colors.primary + "14" },
+                  ]}
+                  onPress={() => {
+                    setVocabPlayingIdx(idx);
+                    pronounceMutation.mutate({ data: { text: item.word, voice: "nova" } });
+                  }}
+                  disabled={isPronouncing && !isPlaying}
+                >
+                  <Feather
+                    name={isPlaying ? "volume-2" : "volume-1"}
+                    size={20}
+                    color={isPlaying ? "#fff" : colors.primary}
+                  />
+                </Pressable>
+              </View>
+            );
+          })}
+          <View style={{ height: 120 }} />
+        </ScrollView>
+
+        <View style={[styles.vocabFooter, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          <Pressable
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              setVocabPlayingIdx(null);
+              pronunciationSoundRef.current?.unloadAsync();
+              setPhase("quiz");
+            }}
+          >
+            <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+              Start Quiz
+            </Text>
+            <Feather name="arrow-right" size={18} color="#fff" />
           </Pressable>
         </View>
       </SafeAreaView>
@@ -1124,6 +1232,33 @@ const styles = StyleSheet.create({
   loadingIcon: { width: 80, height: 80, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   loadingTitle: { fontSize: 20, textAlign: "center" },
   loadingSubtitle: { fontSize: 14, textAlign: "center" },
+
+  vocabHeader: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16,
+  },
+  vocabHeaderTitle: { fontSize: 20 },
+  vocabHeaderSub: { fontSize: 13, marginTop: 1 },
+  vocabBadge: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
+  },
+  vocabBadgeText: { fontSize: 12 },
+  vocabContent: { padding: 20, gap: 12 },
+  vocabIntro: { fontSize: 14, lineHeight: 21, marginBottom: 4 },
+  vocabCard: {
+    flexDirection: "row", alignItems: "center", gap: 16,
+    padding: 16, borderRadius: 16, borderWidth: 1.5,
+  },
+  vocabWord: { fontSize: 22 },
+  vocabPhonetic: { fontSize: 13, fontStyle: "italic" },
+  vocabMeaning: { fontSize: 15 },
+  vocabSpeakBtn: {
+    width: 46, height: 46, borderRadius: 23,
+    alignItems: "center", justifyContent: "center",
+  },
+  vocabFooter: {
+    padding: 20, paddingBottom: 24, borderTopWidth: 1,
+  },
 
   audioContainer: { flex: 1, paddingHorizontal: 24, paddingTop: 8 },
   audioCard: {
