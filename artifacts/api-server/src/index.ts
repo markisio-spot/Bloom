@@ -1,6 +1,7 @@
 import app from "./app.js";
 import { logger } from "./lib/logger.js";
 import { seedAnimals } from "./db/seed.js";
+import { seedQuestions } from "./db/seedQuestions.js";
 
 const rawPort = process.env["PORT"];
 
@@ -29,5 +30,12 @@ app.listen(port, async (err) => {
     logger.info("Animals seeded");
   } catch (seedErr) {
     logger.error({ err: seedErr }, "Failed to seed animals");
+  }
+
+  try {
+    await seedQuestions();
+    logger.info("Questions seeded");
+  } catch (seedErr) {
+    logger.error({ err: seedErr }, "Failed to seed questions");
   }
 });
