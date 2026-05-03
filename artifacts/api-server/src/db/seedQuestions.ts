@@ -354,6 +354,12 @@ const grammarQuestions: SeedEntry[] = [
     const prefix = q.id.match(/^(g\d+)-/)?.[1] ?? "g1";
     return { subject: "grammar", grade: gradeMap[prefix] ?? 1, exerciseType: "multiple_choice", languageSection: null, questionData: q };
   }),
+  // Band 7-9 additions
+  { subject: "grammar", grade: 8, exerciseType: "multiple_choice", languageSection: null, questionData: mc("g8-2","What is an oxymoron?",["A spelling error","A pair of contradictory terms used together","A type of metaphor","A misplaced modifier"],"A pair of contradictory terms used together","An oxymoron combines opposite ideas for effect, e.g. 'deafening silence' or 'bittersweet'.","Oxy = sharp, moron = dull — they contradict each other.") },
+  { subject: "grammar", grade: 9, exerciseType: "multiple_choice", languageSection: null, questionData: mc("g9-2","What is a gerund?",["An adjective","A verb ending in -ing used as a noun","A type of adverb","A past participle"],"A verb ending in -ing used as a noun","A gerund is an -ing verb form functioning as a noun, e.g. 'Swimming is fun'.","It looks like a verb but acts as a noun.") },
+  // Band 10-12 additions
+  { subject: "grammar", grade: 10, exerciseType: "multiple_choice", languageSection: null, questionData: mc("g10-2","What is the difference between 'affect' and 'effect'?",["No difference","Affect is usually a verb; effect is usually a noun","Effect is a verb; affect is a noun","They are synonyms"],"Affect is usually a verb; effect is usually a noun","Affect means to influence (verb); effect is the result (noun). E.g. 'The rain affected us' vs 'The effect was bad'.","RAVEN: Remember Affect Verb Effect Noun.") },
+  { subject: "grammar", grade: 11, exerciseType: "multiple_choice", languageSection: null, questionData: mc("g11-2","What is an appositive?",["A type of verb","A noun phrase that renames a nearby noun","An adverb clause","A coordinating conjunction"],"A noun phrase that renames a nearby noun","An appositive renames or describes the noun beside it, e.g. 'My friend, the doctor, arrived'.","It is usually set off by commas.") },
 ];
 
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
@@ -379,6 +385,18 @@ const historyQuestions: SeedEntry[] = [
     languageSection: null,
     questionData: q,
   })),
+  // Band 1-3 additions
+  { subject: "history", grade: 1, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h1-2","What famous ship sank after hitting an iceberg in 1912?",["Lusitania","Titanic","Bismarck","Hindenburg"],"Titanic","The RMS Titanic sank on 15 April 1912 on its maiden voyage.","It was said to be unsinkable.") },
+  { subject: "history", grade: 2, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h2-2","Which ancient structure was built by the Egyptians as a royal tomb?",["The Colosseum","The Parthenon","The Great Pyramid","Stonehenge"],"The Great Pyramid","The Great Pyramid of Giza was built around 2560 BC.","It is one of the Seven Wonders of the Ancient World.") },
+  // Band 4-6 additions
+  { subject: "history", grade: 4, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h4-2","Who was the first person to walk on the Moon?",["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],"Neil Armstrong","Neil Armstrong stepped onto the Moon on 20 July 1969 during the Apollo 11 mission.","He said 'One small step for man...'") },
+  { subject: "history", grade: 5, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h5-2","What movement fought to abolish slavery in the USA before the Civil War?",["Suffragette Movement","Civil Rights Movement","Abolitionist Movement","Progressive Movement"],"Abolitionist Movement","Abolitionists demanded an end to slavery. Key figures included Frederick Douglass and Harriet Tubman.","Abolish = to do away with something.") },
+  // Band 7-9 additions
+  { subject: "history", grade: 7, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h7-2","In which city was Archduke Franz Ferdinand assassinated in 1914, triggering WWI?",["Vienna","Sarajevo","Berlin","Paris"],"Sarajevo","Franz Ferdinand was shot in Sarajevo, Bosnia on 28 June 1914, setting off a chain of events that led to WWI.","It was in the Balkans.") },
+  { subject: "history", grade: 8, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h8-2","The Holocaust was the systematic murder of approximately how many Jewish people by the Nazis?",["600,000","2 million","6 million","10 million"],"6 million","The Nazis murdered approximately 6 million Jewish people, along with millions of others, during WWII.","One third of the world's Jewish population at the time.") },
+  // Band 10-12 additions
+  { subject: "history", grade: 10, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h10-2","What was the Marshall Plan?",["A military alliance","US economic aid to rebuild post-WWII Europe","A nuclear arms treaty","A colonial policy"],"US economic aid to rebuild post-WWII Europe","The Marshall Plan (1948) provided over $12 billion to rebuild Western European economies devastated by WWII.","Named after US Secretary of State George Marshall.") },
+  { subject: "history", grade: 11, exerciseType: "multiple_choice", languageSection: null, questionData: mc("h11-2","What was the primary justification given by the USA for the 2003 invasion of Iraq?",["Retaliation for 9/11","Alleged weapons of mass destruction","Oil resources","Democracy promotion"],"Alleged weapons of mass destruction","The USA claimed Iraq possessed WMDs. None were found after the invasion, making the justification highly controversial.","WMD = Weapons of Mass Destruction.") },
 ];
 
 // ─── GEOGRAPHY ───────────────────────────────────────────────────────────────
@@ -404,6 +422,18 @@ const geographyQuestions: SeedEntry[] = [
     languageSection: null,
     questionData: q,
   })),
+  // Band 1-3 additions
+  { subject: "geography", grade: 1, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo1-2","Which is the largest ocean in the world?",["Atlantic","Indian","Arctic","Pacific"],"Pacific","The Pacific Ocean covers more than 165 million km², making it the largest ocean.","It separates Asia and the Americas.") },
+  { subject: "geography", grade: 2, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo2-2","On which continent is the Sahara Desert?",["Asia","Australia","Africa","South America"],"Africa","The Sahara is the world's largest hot desert, stretching across northern Africa.","It is almost as large as the USA.") },
+  // Band 4-6 additions
+  { subject: "geography", grade: 4, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo4-2","What is the capital city of Canada?",["Toronto","Vancouver","Montreal","Ottawa"],"Ottawa","Ottawa has been Canada's capital since 1857, chosen partly for its distance from the US border.","It's not Toronto!") },
+  { subject: "geography", grade: 5, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo5-2","What is the name for a narrow strip of land connecting two larger landmasses?",["Peninsula","Archipelago","Isthmus","Delta"],"Isthmus","An isthmus is a narrow strip of land with sea on either side. The Isthmus of Panama connects North and South America.","Think of Panama.") },
+  // Band 7-9 additions
+  { subject: "geography", grade: 7, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo7-2","What is a drainage basin?",["A type of reservoir","An area of land that channels water into a single river system","A flooded valley","A wetland ecosystem"],"An area of land that channels water into a single river system","A drainage basin (or watershed) is all the land that drains into a particular river and its tributaries.","Also called a catchment area.") },
+  { subject: "geography", grade: 8, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo8-2","The Himalayas were formed by which type of plate boundary?",["Divergent boundary","Conservative boundary","Destructive boundary","Collision boundary"],"Collision boundary","The Himalayas formed when the Indian plate collided with the Eurasian plate, pushing rock upward.","Two continents colliding = fold mountains.") },
+  // Band 10-12 additions
+  { subject: "geography", grade: 10, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo10-2","What is gentrification?",["A farming improvement scheme","The displacement of low-income residents as wealthier people move into an area","Industrial relocation","Coastal land reclamation"],"The displacement of low-income residents as wealthier people move into an area","Gentrification raises property values and often displaces original residents who can no longer afford the area.","It changes the social and economic character of a neighbourhood.") },
+  { subject: "geography", grade: 11, exerciseType: "multiple_choice", languageSection: null, questionData: mc("geo11-2","What is the difference between weather and climate?",["They are the same thing","Weather is short-term; climate is the long-term average pattern","Climate is daily; weather is seasonal","Weather is global; climate is local"],"Weather is short-term; climate is the long-term average pattern","Weather is what happens day to day; climate is the average pattern over 30+ years.","Climate is what you expect; weather is what you get.") },
 ];
 
 // ─── FRENCH ──────────────────────────────────────────────────────────────────
@@ -656,6 +686,11 @@ export async function seedQuestions() {
   if (Number(count) >= ALL_QUESTIONS.length) {
     console.log(`Questions already seeded (${count} rows). Skipping.`);
     return;
+  }
+
+  if (Number(count) > 0) {
+    console.log(`Clearing ${count} existing questions before re-seeding...`);
+    await db.delete(questionsTable);
   }
 
   console.log(`Seeding ${ALL_QUESTIONS.length} questions...`);

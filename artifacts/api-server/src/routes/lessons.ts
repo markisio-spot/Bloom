@@ -2,7 +2,7 @@ import { Router } from "express";
 import { textToSpeech, speechToText } from "@workspace/integrations-openai-ai-server/audio";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth.js";
 import { db, questionsTable } from "@workspace/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -201,6 +201,23 @@ Tailor difficulty to a student who is learning ${langName} at the ${section.num 
 
 export { buildLessonPrompt };
 
+// ── Grade band helper ─────────────────────────────────────────────────────────
+// Maps any school grade (1-12) to the band of questions available in the DB.
+// Math has questions at every grade; other subjects use 4 difficulty bands.
+function gradeBand(grade: number): { min: number; max: number } {
+  if (grade <= 3)  return { min: 1,  max: 3  };
+  if (grade <= 6)  return { min: 4,  max: 6  };
+  if (grade <= 9)  return { min: 7,  max: 9  };
+  return              { min: 10, max: 12 };
+}
+
+function bandLabel(grade: number): string {
+  if (grade <= 3)  return "Beginner (Grades 1–3)";
+  if (grade <= 6)  return "Elementary (Grades 4–6)";
+  if (grade <= 9)  return "Intermediate (Grades 7–9)";
+  return              "Advanced (Grades 10–12)";
+}
+
 // ── Routes ─────────────────────────────────────────────────────────────────────
 
 router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) => {
@@ -225,33 +242,53 @@ router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) =
   const lvl = level ?? 5;
 
   // ── Try DB first ─────────────────────────────────────────────────────────────
-  const conditions = [
-    eq(questionsTable.subject, subject),
-    eq(questionsTable.grade, lvl),
-    eq(questionsTable.isActive, true),
-  ] as Parameters<typeof and>;
-  if (isLanguage && languageSection) {
-    conditions.push(eq(questionsTable.languageSection, languageSection));
+  // Math: exact grade match (20 questions per grade).
+  // Languages with section: filter by section only — section already defines difficulty.
+  // All other subjects: use grade bands so nearby grades share a question pool.
+  let whereClause;
+  if (subject === "math") {
+    whereClause = and(
+      eq(questionsTable.subject, subject),
+      eq(questionsTable.grade, lvl),
+      eq(questionsTable.isActive, true),
+    );
+  } else if (isLanguage && languageSection) {
+    whereClause = and(
+      eq(questionsTable.subject, subject),
+      eq(questionsTable.languageSection, languageSection),
+      eq(questionsTable.isActive, true),
+    );
+  } else {
+    const band = gradeBand(lvl);
+    whereClause = and(
+      eq(questionsTable.subject, subject),
+      gte(questionsTable.grade, band.min),
+      lte(questionsTable.grade, band.max),
+      eq(questionsTable.isActive, true),
+    );
   }
 
-  const [{ qcount }] = await db.select({ qcount: sql<number>`count(*)` }).from(questionsTable).where(and(...conditions));
+  const [{ qcount }] = await db.select({ qcount: sql<number>`count(*)` }).from(questionsTable).where(whereClause);
 
-  if (Number(qcount) < 10) {
+  if (Number(qcount) < 5) {
     res.status(404).json({ error: "Not enough questions available for this subject and grade. Please check back later." });
     return;
   }
 
   const dbRows = await db.select().from(questionsTable)
-    .where(and(...conditions))
+    .where(whereClause)
     .orderBy(sql`RANDOM()`)
     .limit(10);
+
+  const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
+  const levelTitle = subject === "math" ? `Grade ${lvl}` : bandLabel(lvl);
 
   const dbLesson = {
     id: `db-${Date.now()}`,
     subject,
     exerciseType: type,
     level: lvl,
-    title: `${subject.charAt(0).toUpperCase() + subject.slice(1)} — Grade ${lvl}`,
+    title: `${subjectTitle} — ${levelTitle}`,
     content: "",
     audioText: null,
     questions: dbRows.map((r) => r.questionData),
