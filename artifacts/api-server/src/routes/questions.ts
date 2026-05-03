@@ -129,7 +129,7 @@ async function generateAndSave(subject: string, grade: number, exerciseType: str
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
-    max_completion_tokens: 2500,
+    max_completion_tokens: 5000,
     messages: [
       { role: "system", content: "You are a lesson generator. Respond with valid JSON only, no markdown." },
       { role: "user", content: prompt },
@@ -188,7 +188,7 @@ router.post("/questions/generate-batch", authMiddleware, requireAdmin, async (re
 
   for (const subj of targetSubjects) {
     const isLang = LANG_SUBJECTS.has(subj);
-    const callsNeeded = Math.ceil(questionsPerCombo / 8); // ~8 questions per AI call
+    const callsNeeded = Math.ceil(questionsPerCombo / 16); // ~16 questions per AI call now
 
     if (isLang) {
       // For language subjects: each section × each grade

@@ -58,6 +58,11 @@ const PETAL_COLORS = [
   "#3B82F6", "#22C55E", "#F97316", "#06B6D4",
 ];
 
+const POT_COLORS = [
+  "#ffffff", "#1B3A6B", "#F5C518", "#C17A5F",
+  "#86EFAC", "#A78BFA", "#FDA4AF", "#94A3B8",
+];
+
 const STAGE_INFO: Record<number, { name: string; emoji: string; nextCoins: number | null; desc: string }> = {
   1: { name: "Sprout",     emoji: "🌱", nextCoins: 100,  desc: "Just getting started!" },
   2: { name: "Seedling",   emoji: "🌿", nextCoins: 500,  desc: "Growing nicely!" },
@@ -74,6 +79,7 @@ function parseSeedling(raw: string | null | undefined): SeedlingData {
     return {
       expression: typeof parsed.expression === "string" ? parsed.expression : DEFAULT_SEEDLING.expression,
       petalColor: typeof parsed.petalColor === "string" ? parsed.petalColor : DEFAULT_SEEDLING.petalColor,
+      potColor: typeof parsed.potColor === "string" ? parsed.potColor : DEFAULT_SEEDLING.potColor,
     };
   } catch { return DEFAULT_SEEDLING; }
 }
@@ -311,6 +317,21 @@ export default function ProfileScreen() {
                   style={[styles.colorDot, { backgroundColor: clr },
                     seedling.petalColor === clr && styles.colorDotSelected]}
                   onPress={() => setSeedling({ ...seedling, petalColor: clr })}
+                />
+              ))}
+            </BuilderRow>
+
+            {/* Pot color */}
+            <BuilderRow label="Pot Color">
+              {POT_COLORS.map((clr) => (
+                <Pressable
+                  key={clr}
+                  style={[
+                    styles.colorDot,
+                    { backgroundColor: clr, borderColor: clr === "#ffffff" ? "#D1D5DB" : clr },
+                    seedling.potColor === clr && styles.colorDotSelected,
+                  ]}
+                  onPress={() => setSeedling({ ...seedling, potColor: clr })}
                 />
               ))}
             </BuilderRow>

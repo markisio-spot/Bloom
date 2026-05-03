@@ -86,17 +86,23 @@ ${QUESTION_FORMAT}
   // ── Math ──
   if (subject === "math") {
     const mathPrompts: Record<string, string> = {
-      mixed: `Generate a grade-${level} mixed math lesson with exactly 6 questions:
+      mixed: `Generate a grade-${level} mixed math lesson with exactly 12 questions:
 1. multiple_choice arithmetic/algebra question (4 options)
 2. fill_blank equation with one blank (e.g. "3 + __ = 10", options: null)
 3. multiple_choice word problem (real-world scenario, 4 options)
 4. fill_blank equation (options: null)
 5. multiple_choice conceptual question (4 options)
 6. fill_blank equation (options: null)
+7. multiple_choice arithmetic/algebra question (4 options)
+8. fill_blank equation (options: null)
+9. multiple_choice word problem (4 options)
+10. fill_blank equation (options: null)
+11. multiple_choice conceptual question (4 options)
+12. fill_blank equation (options: null)
 Make progressively harder. Set "pairs" to null for all. Set "speakText" to null for all.`,
-      multiple_choice: `Generate 5 grade-${level} math problems. Each with 4 multiple choice options. Set "speakText" to null for all.`,
-      fill_blank: `Generate 5 grade-${level} math equations with a blank. Use type "fill_blank". Set "speakText" to null for all.`,
-      word_problem: `Generate 3 grade-${level} math word problems. Use type "multiple_choice" with 4 options each. Set "speakText" to null for all.`,
+      multiple_choice: `Generate 10 grade-${level} math problems. Each with 4 multiple choice options. Set "speakText" to null for all.`,
+      fill_blank: `Generate 10 grade-${level} math equations with a blank. Use type "fill_blank". Set "speakText" to null for all.`,
+      word_problem: `Generate 6 grade-${level} math word problems. Use type "multiple_choice" with 4 options each. Set "speakText" to null for all.`,
     };
     const prompt = mathPrompts[exerciseType] ?? `Generate 5 grade-${level} math questions using type "multiple_choice". Set "speakText" to null for all.`;
     return baseInstructions + "\n\nSpecific instructions:\n" + prompt;
@@ -105,10 +111,10 @@ Make progressively harder. Set "pairs" to null for all. Set "speakText" to null 
   // ── Grammar ──
   if (subject === "grammar") {
     const grammarPrompts: Record<string, string> = {
-      spelling: `Generate 5 grade-${level} English spelling exercises. Use type "multiple_choice" with 4 options. Set "speakText" to null for all.`,
-      punctuation: `Generate 5 grade-${level} punctuation exercises. Use type "multiple_choice". Set "speakText" to null for all.`,
-      parts_of_speech: `Generate 5 grade-${level} parts of speech exercises. Use type "multiple_choice". Set "speakText" to null for all.`,
-      word_definitions: `Generate 5 grade-${level} vocabulary/definition exercises. Use type "multiple_choice" with 4 options. Set "speakText" to null for all.`,
+      spelling: `Generate 10 grade-${level} English spelling exercises. Use type "multiple_choice" with 4 options. Set "speakText" to null for all.`,
+      punctuation: `Generate 10 grade-${level} punctuation exercises. Use type "multiple_choice". Set "speakText" to null for all.`,
+      parts_of_speech: `Generate 10 grade-${level} parts of speech exercises. Use type "multiple_choice". Set "speakText" to null for all.`,
+      word_definitions: `Generate 10 grade-${level} vocabulary/definition exercises. Use type "multiple_choice" with 4 options. Set "speakText" to null for all.`,
     };
     const prompt = grammarPrompts[exerciseType] ?? `Generate 5 grade-${level} English grammar questions using type "multiple_choice". Set "speakText" to null for all.`;
     return baseInstructions + "\n\nSpecific instructions:\n" + prompt;
@@ -117,7 +123,7 @@ Make progressively harder. Set "pairs" to null for all. Set "speakText" to null 
   // ── History / Geography ──
   if (subject === "history" || subject === "geography") {
     const topic = subject === "history" ? "historical event or person" : "country, landmark, or geographic feature";
-    const prompt = `Generate a ${subject} reading passage appropriate for grade ${level} (4-6 sentences covering an interesting ${topic}). Then create 4 comprehension questions in multiple_choice format (4 options each). Set "content" to the full reading passage. Set "speakText" to null for all questions.`;
+    const prompt = `Generate a ${subject} reading passage appropriate for grade ${level} (4-6 sentences covering an interesting ${topic}). Then create 8 comprehension questions in multiple_choice format (4 options each). Set "content" to the full reading passage. Set "speakText" to null for all questions.`;
     return baseInstructions + "\n\nSpecific instructions:\n" + prompt;
   }
 
@@ -153,21 +159,21 @@ ${QUESTION_FORMAT}
 `;
 
   const sectionPrompts: Record<string, string> = {
-    vocabulary: `Generate 6 ${langName} vocabulary questions focused on the topic "${section.name}".
+    vocabulary: `Generate 12 ${langName} vocabulary questions focused on the topic "${section.name}".
 Each question shows a ${langName} word/phrase and asks for the English meaning (or vice versa).
 Use type "multiple_choice" with 4 options.
 For each question, set "speakText" to the ${langName} word/phrase from the question (always the target-language content to pronounce).`,
 
-    fill_blank: `Generate 5 ${langName} fill-in-the-blank sentences focused on the topic "${section.name}".
+    fill_blank: `Generate 10 ${langName} fill-in-the-blank sentences focused on the topic "${section.name}".
 Each is a ${langName} sentence with one word/phrase missing. Use type "fill_blank", options: null.
 Set "speakText" to the complete correct ${langName} sentence (with the blank filled in).`,
 
-    matching: `Generate a matching exercise with 6 pairs focused on the topic "${section.name}" in ${langName}.
+    matching: `Generate a matching exercise with 12 pairs focused on the topic "${section.name}" in ${langName}.
 Use type "match". Set "pairs" to [{left:"${langName} word/phrase", right:"English meaning"},...].
 Set "options" to null. Set "correctAnswer" to "matched".
 Set "speakText" to a comma-separated list of the ${langName} words/phrases from the left column.`,
 
-    speak: `Generate 5 ${langName} speaking exercises focused on the topic "${section.name}".
+    speak: `Generate 10 ${langName} speaking exercises focused on the topic "${section.name}".
 Each question shows an English word/phrase and the student must say it in ${langName}.
 Use type "speak". 
 The "question" field should be: "Say in ${langName}: [English word or phrase]".
@@ -175,7 +181,7 @@ The "correctAnswer" field should be the exact correct ${langName} word/phrase.
 The "speakText" field must be exactly the ${langName} word/phrase the student needs to say (same as correctAnswer).
 Keep vocabulary practical and common for beginners learning "${section.name}".`,
 
-    writing: `Generate 5 writing exercises focused on the topic "${section.name}" in ${langName}.
+    writing: `Generate 10 writing exercises focused on the topic "${section.name}" in ${langName}.
 ${languageSection && languageSection >= 16
   ? `Each question provides an English sentence that the student must translate into ${langName}. Use type "write". The "question" field should be the English sentence to translate. The "correctAnswer" field should be the correct ${langName} translation. Set "speakText" to the correct ${langName} translation.`
   : `Each question provides an English word/phrase and the student must write it in ${langName}. Use type "write". Provide the English prompt in the "question" field and the correct ${langName} answer in "correctAnswer". Set "speakText" to the correct ${langName} answer.`
@@ -183,7 +189,7 @@ ${languageSection && languageSection >= 16
   };
 
   const specificPrompt = sectionPrompts[section.exerciseType] ??
-    `Generate 5 ${langName} questions about "${section.name}" using type "multiple_choice". Set "speakText" to the target-language content for each question.`;
+    `Generate 10 ${langName} questions about "${section.name}" using type "multiple_choice". Set "speakText" to the target-language content for each question.`;
 
   const sectionContext = `
 This is Section ${section.num}/18 of the ${langName} curriculum: "${section.name}".
@@ -256,7 +262,7 @@ router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) =
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
-    max_completion_tokens: 2500,
+    max_completion_tokens: 5000,
     messages: [
       { role: "system", content: "You are a lesson generator. Respond with valid JSON only, no markdown." },
       { role: "user", content: prompt },

@@ -39,6 +39,7 @@ function parseSeedling(raw: string | null | undefined): SeedlingData {
     return {
       expression: typeof parsed.expression === "string" ? parsed.expression : DEFAULT_SEEDLING.expression,
       petalColor: typeof parsed.petalColor === "string" ? parsed.petalColor : DEFAULT_SEEDLING.petalColor,
+      potColor: typeof parsed.potColor === "string" ? parsed.potColor : DEFAULT_SEEDLING.potColor,
     };
   } catch { return DEFAULT_SEEDLING; }
 }

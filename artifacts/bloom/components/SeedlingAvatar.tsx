@@ -5,11 +5,13 @@ import Svg, { Circle, Ellipse, Path, G } from "react-native-svg";
 export interface SeedlingData {
   expression: string;
   petalColor: string;
+  potColor: string;
 }
 
 export const DEFAULT_SEEDLING: SeedlingData = {
   expression: "happy",
   petalColor: "#F5C518",
+  potColor: "#ffffff",
 };
 
 export function getStage(coins: number): 1 | 2 | 3 | 4 {
@@ -151,7 +153,7 @@ export function SeedlingAvatar({
     <View style={{ width: size, height: svgH }}>
       <Svg width={size} height={svgH} viewBox={`0 0 ${W} ${H}`}>
         {/* Pot body */}
-        <Path d="M 28 132 L 32 162 Q 50 168 68 162 L 72 132 Z" fill="white" stroke="#D1D5DB" strokeWidth="1" />
+        <Path d="M 28 132 L 32 162 Q 50 168 68 162 L 72 132 Z" fill={seedling.potColor} stroke="#D1D5DB" strokeWidth="1" />
         <Path d="M 32 135 L 34 158 Q 35 163 33 162" stroke="rgba(180,180,180,0.35)" strokeWidth="3" fill="none" strokeLinecap="round" />
         {/* Pot rim (gold) */}
         <Ellipse cx={50} cy={132} rx={22} ry={6} fill="#F5C518" />
