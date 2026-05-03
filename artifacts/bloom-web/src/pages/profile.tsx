@@ -50,6 +50,9 @@ export default function Profile() {
 
   if (!user) return null;
 
+  const today = new Date().toISOString().slice(0, 7);
+  const canClaimGift = !user.lastGiftDate || !user.lastGiftDate.startsWith(today);
+
   return (
     <div className="container mx-auto p-4 md:p-8 max-w-5xl space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -91,20 +94,25 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+          <Card className={`bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200 transition-opacity ${canClaimGift ? "opacity-100" : "opacity-55"}`}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-indigo-900">
-                <Gift className="w-5 h-5 text-indigo-500" /> Monthly Gift
+                <Gift className="w-5 h-5 text-indigo-500" />
+                {canClaimGift ? "Monthly Gift" : "Monthly Gift Claimed"}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-indigo-700/80 mb-4 font-medium">Claim your free monthly coin boost to help buy more rare animals!</p>
-              <Button 
-                onClick={() => claimGiftMutation.mutate({})} 
-                disabled={claimGiftMutation.isPending}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+              <p className="text-sm text-indigo-700/80 mb-4 font-medium">
+                {canClaimGift
+                  ? "Claim your free monthly coin boost to help buy more rare animals!"
+                  : "You've already claimed your gift this month. Come back next month!"}
+              </p>
+              <Button
+                onClick={() => claimGiftMutation.mutate({})}
+                disabled={!canClaimGift || claimGiftMutation.isPending}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold disabled:opacity-70"
               >
-                Claim Gift
+                {canClaimGift ? "Claim Gift" : "✓ Already Claimed"}
               </Button>
             </CardContent>
           </Card>
