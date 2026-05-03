@@ -8,6 +8,7 @@ import {
   useGetFriends,
   useGetFriendRequests,
   useSearchUsers,
+  getSearchUsersQueryKey,
   useSendFriendRequest,
   useRespondToFriendRequest,
   useRemoveFriend,
@@ -57,18 +58,26 @@ const EXPRESSIONS = [
   { key: "calm", label: "😌 Calm" },
   { key: "determined", label: "😤 Determined" },
 ];
-const CLOTHINGS = [
-  { key: "uniform", label: "🏫 Uniform" },
-  { key: "casual", label: "👕 Casual" },
-  { key: "sporty", label: "⚽ Sporty" },
-  { key: "formal", label: "👔 Formal" },
-  { key: "creative", label: "🎨 Creative" },
-  { key: "hoodie", label: "🧥 Hoodie" },
+const CLOTHING_COLORS = [
+  "#1B3A6B", "#4F46E5", "#0891B2", "#7C3AED",
+  "#DC2626", "#EA580C", "#16A34A", "#0D9488",
+  "#DB2777", "#9333EA", "#374151", "#B45309",
+  "#F5C518", "#EC4899", "#6366F1", "#059669",
 ];
+
+const CLOTHING_TYPE_TO_COLOR: Record<string, string> = {
+  uniform: "#1B3A6B", casual: "#4F46E5", sporty: "#0891B2",
+  formal: "#374151", creative: "#7C3AED", hoodie: "#B45309",
+};
 
 function parseAvatar(raw: string | null | undefined): AvatarData {
   if (!raw) return DEFAULT_AVATAR;
-  try { return { ...DEFAULT_AVATAR, ...(JSON.parse(raw) as Partial<AvatarData>) }; }
+  try {
+    const parsed = JSON.parse(raw) as Partial<AvatarData> & { clothing?: string };
+    const clothingColor = parsed.clothingColor ??
+      (parsed.clothing ? (CLOTHING_TYPE_TO_COLOR[parsed.clothing] ?? "#1B3A6B") : "#1B3A6B");
+    return { ...DEFAULT_AVATAR, ...parsed, clothingColor };
+  }
   catch { return DEFAULT_AVATAR; }
 }
 
@@ -93,7 +102,7 @@ export default function ProfileScreen() {
   const { data: friendRequests = [] } = useGetFriendRequests({ query: { enabled: !!token, queryKey: getGetFriendRequestsQueryKey() } });
   const { data: searchResults = [], isLoading: searching } = useSearchUsers(
     { q: searchQuery },
-    { query: { enabled: searchQuery.length >= 2 } }
+    { query: { enabled: searchQuery.length >= 2, queryKey: getSearchUsersQueryKey({ q: searchQuery }) } }
   );
 
   const updateMeMutation = useUpdateMe({
@@ -273,14 +282,11 @@ export default function ProfileScreen() {
               ))}
             </BuilderRow>
 
-            {/* Clothing */}
-            <BuilderRow label="Clothing">
-              {CLOTHINGS.map(({ key, label }) => (
-                <Pressable key={key}
-                  style={[styles.optionTag, { backgroundColor: avatar.clothing === key ? colors.primary : colors.background, borderColor: avatar.clothing === key ? colors.primary : colors.border }]}
-                  onPress={() => setAvatar({ ...avatar, clothing: key })}>
-                  <Text style={[styles.tagText, { color: avatar.clothing === key ? "#fff" : colors.primary, fontFamily: "Inter_600SemiBold" }]}>{label}</Text>
-                </Pressable>
+            {/* Clothing Color */}
+            <BuilderRow label="Clothing Color">
+              {CLOTHING_COLORS.map((clr) => (
+                <Pressable key={clr} style={[styles.colorDot, { backgroundColor: clr }, avatar.clothingColor === clr && styles.colorDotSelected]}
+                  onPress={() => setAvatar({ ...avatar, clothingColor: clr })} />
               ))}
             </BuilderRow>
           </View>

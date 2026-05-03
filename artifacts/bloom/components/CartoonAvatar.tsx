@@ -7,7 +7,7 @@ export interface AvatarData {
   hairColor: string;
   hairStyle: string;
   eyeColor: string;
-  clothing: string;
+  clothingColor: string;
   expression: string;
   accessory?: string;
 }
@@ -17,17 +17,8 @@ export const DEFAULT_AVATAR: AvatarData = {
   hairColor: "#1B3A6B",
   hairStyle: "short_spiky",
   eyeColor: "#1B3A6B",
-  clothing: "uniform",
+  clothingColor: "#1B3A6B",
   expression: "happy",
-};
-
-const CLOTHING_COLORS: Record<string, string> = {
-  uniform: "#1B3A6B",
-  casual: "#4F46E5",
-  sporty: "#0891B2",
-  formal: "#374151",
-  creative: "#7C3AED",
-  hoodie: "#B45309",
 };
 
 function darken(hex: string, amt: number): string {
@@ -38,12 +29,16 @@ function darken(hex: string, amt: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
-// ─── Hair ────────────────────────────────────────────────────────────────────
+function lighten(hex: string, amt: number): string {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const r = Math.min(255, (n >> 16) + Math.round(255 * amt));
+  const g = Math.min(255, ((n >> 8) & 0xff) + Math.round(255 * amt));
+  const b = Math.min(255, (n & 0xff) + Math.round(255 * amt));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
 
-const CAP = "M 22 46 C 22 14 50 8 50 8 C 50 8 78 14 78 46 Q 72 30 50 28 Q 28 30 22 46 Z";
-const BANGS = "M 30 40 Q 32 30 50 28 Q 68 30 70 40 L 68 48 Q 60 41 50 40 Q 40 41 32 48 Z";
+// ─── Hair behind head (long styles) ──────────────────────────────────────────
 
-// Hair drawn BEHIND the head (long styles)
 function HairBehind({ style, color }: { style: string; color: string }) {
   switch (style) {
     case "long_straight":
@@ -62,20 +57,19 @@ function HairBehind({ style, color }: { style: string; color: string }) {
       );
     case "side_braid":
       return (
-        <G>
-          <Path d="M 20 54 Q 10 64 10 82 Q 10 108 16 124" stroke={color} strokeWidth="9" fill="none" strokeLinecap="round" />
-        </G>
+        <Path d="M 20 54 Q 10 64 10 82 Q 10 108 16 124" stroke={color} strokeWidth="9" fill="none" strokeLinecap="round" />
       );
     case "high_ponytail":
       return (
-        <G>
-          <Path d="M 44 16 Q 60 8 66 20 Q 74 38 68 70 Q 64 100 62 128" stroke={color} strokeWidth="13" fill="none" strokeLinecap="round" />
-        </G>
+        <Path d="M 44 16 Q 60 8 66 20 Q 74 38 68 70 Q 64 100 62 128" stroke={color} strokeWidth="13" fill="none" strokeLinecap="round" />
       );
     default:
       return null;
   }
 }
+
+const CAP = "M 22 46 C 22 14 50 8 50 8 C 50 8 78 14 78 46 Q 72 30 50 28 Q 28 30 22 46 Z";
+const BANGS = "M 30 40 Q 32 30 50 28 Q 68 30 70 40 L 68 48 Q 60 41 50 40 Q 40 41 32 48 Z";
 
 function Hair({ style, color }: { style: string; color: string }) {
   switch (style) {
@@ -144,96 +138,113 @@ function Hair({ style, color }: { style: string; color: string }) {
         </G>
       );
     default:
-      // fallback = short_spiky
-      return (
-        <G>
-          <Path d={CAP} fill={color} />
-        </G>
-      );
+      return <Path d={CAP} fill={color} />;
   }
 }
 
-// ─── Anime Eyes ──────────────────────────────────────────────────────────────
+// ─── Eyes (expressive, rounder) ──────────────────────────────────────────────
 
-function AnimeEye({ cx, eyeColor, expression }: { cx: number; eyeColor: string; expression: string }) {
+function Eye({ cx, eyeColor, expression }: { cx: number; eyeColor: string; expression: string }) {
+  const cy = 46;
   const isCool = expression === "cool";
   const isExcited = expression === "excited";
+  const isHappy = expression === "happy" || expression === "studious" || expression === "calm";
 
-  // Almond shape: M (cx-11) cy Q top-peak (cx) cy Q (cx+11) cy
-  const lx = cx - 11;
-  const rx = cx + 11;
-  const cy = 46;
-  const topY = isCool ? 44 : 40;
-  const bottomY = isCool ? 50 : 52;
+  if (isCool) {
+    // Half-closed, sleepy cool eyes
+    return (
+      <G>
+        <Ellipse cx={cx} cy={cy + 1} rx={9} ry={5} fill="white" />
+        <Circle cx={cx} cy={cy + 1} r={4} fill={eyeColor} />
+        <Circle cx={cx} cy={cy + 1} r={2.2} fill="#070714" />
+        <Circle cx={cx + 2} cy={cy - 1} r={1.4} fill="white" />
+        <Path d={`M ${cx - 9} ${cy + 1} Q ${cx} ${cy - 5} ${cx + 9} ${cy + 1}`} stroke={darken(eyeColor, 0.4)} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
 
-  const whiteAlmond = `M ${lx} ${cy} Q ${cx - 4} ${topY} ${cx} ${topY} Q ${cx + 4} ${topY} ${rx} ${cy} Q ${cx + 4} ${bottomY} ${cx} ${bottomY} Q ${cx - 4} ${bottomY} ${lx} ${cy} Z`;
+  if (isExcited) {
+    // Large sparkling eyes
+    return (
+      <G>
+        <Circle cx={cx} cy={cy} r={10} fill="white" stroke={darken(eyeColor, 0.3)} strokeWidth="1.5" />
+        <Circle cx={cx} cy={cy} r={7} fill={eyeColor} />
+        <Circle cx={cx} cy={cy} r={4.5} fill="#070714" />
+        <Circle cx={cx + 3} cy={cy - 3} r={2.5} fill="white" />
+        <Circle cx={cx - 2} cy={cy + 2} r={1.2} fill="rgba(255,255,255,0.7)" />
+        <Path d={`M ${cx - 9} ${cy} Q ${cx} ${cy - 9} ${cx + 9} ${cy}`} stroke={darken(eyeColor, 0.5)} strokeWidth="2" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
 
+  if (isHappy) {
+    // Soft round friendly eyes
+    return (
+      <G>
+        <Ellipse cx={cx} cy={cy} rx={8} ry={8.5} fill="white" stroke={darken(eyeColor, 0.2)} strokeWidth="1" />
+        <Circle cx={cx} cy={cy} r={5.5} fill={eyeColor} />
+        <Circle cx={cx} cy={cy} r={3} fill="#070714" />
+        <Circle cx={cx + 2} cy={cy - 2.5} r={1.8} fill="white" />
+        <Circle cx={cx - 1.5} cy={cy + 1.5} r={0.9} fill="rgba(255,255,255,0.6)" />
+        <Path d={`M ${cx - 7} ${cy} Q ${cx} ${cy - 7} ${cx + 7} ${cy}`} stroke={darken(eyeColor, 0.4)} strokeWidth="2" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
+
+  // determined / default — focused, slightly narrowed
   return (
     <G>
-      {/* Eye white */}
-      <Path d={whiteAlmond} fill="white" />
-      {/* Iris */}
-      <Circle cx={cx} cy={cy} r={isExcited ? 7 : 5.5} fill={eyeColor} />
-      {/* Pupil */}
-      <Circle cx={cx} cy={cy} r={isExcited ? 4 : 3} fill="#070714" />
-      {/* Inner iris highlight ring */}
-      <Circle cx={cx} cy={cy} r={isExcited ? 5.5 : 4.2} fill="none" stroke={eyeColor} strokeWidth="1" opacity={0.5} />
-      {/* Main star highlight */}
-      <Circle cx={cx + 2.5} cy={cy - 2.5} r={isExcited ? 2.2 : 1.8} fill="white" />
-      {/* Secondary highlight */}
-      <Circle cx={cx - 2} cy={cy + 1.8} r={isExcited ? 1.2 : 0.9} fill="rgba(255,255,255,0.65)" />
-      {/* Upper lid thick line */}
-      <Path d={`M ${lx} ${cy} Q ${cx - 4} ${topY} ${cx} ${topY} Q ${cx + 4} ${topY} ${rx} ${cy}`}
-        stroke={darken(eyeColor, 0.5)} strokeWidth="2.2" fill="none" strokeLinecap="round" />
-      {/* Lash accents at corners */}
-      <Path d={`M ${lx} ${cy} L ${lx - 2} ${cy - 1}`} stroke={darken(eyeColor, 0.4)} strokeWidth="1.5" strokeLinecap="round" />
-      <Path d={`M ${rx} ${cy} L ${rx + 2} ${cy - 1}`} stroke={darken(eyeColor, 0.4)} strokeWidth="1.5" strokeLinecap="round" />
-      {/* Lower lid thin line */}
-      <Path d={`M ${lx} ${cy} Q ${cx} ${bottomY} ${rx} ${cy}`}
-        stroke={darken(eyeColor, 0.3)} strokeWidth="0.8" fill="none" strokeLinecap="round" opacity={0.6} />
+      <Ellipse cx={cx} cy={cy} rx={8} ry={7} fill="white" stroke={darken(eyeColor, 0.2)} strokeWidth="1" />
+      <Circle cx={cx} cy={cy} r={5} fill={eyeColor} />
+      <Circle cx={cx} cy={cy} r={2.8} fill="#070714" />
+      <Circle cx={cx + 2} cy={cy - 2} r={1.5} fill="white" />
+      <Path d={`M ${cx - 8} ${cy - 1} Q ${cx} ${cy - 7} ${cx + 8} ${cy - 1}`} stroke={darken(eyeColor, 0.5)} strokeWidth="2.2" fill="none" strokeLinecap="round" />
     </G>
   );
 }
 
 // ─── Mouth ───────────────────────────────────────────────────────────────────
 
-function AnimeMouth({ expression }: { expression: string }) {
+function Mouth({ expression }: { expression: string }) {
   switch (expression) {
     case "cool":
       return (
         <G>
-          <Path d="M 43 66 L 57 66" stroke="#C0392B" strokeWidth="2" strokeLinecap="round" />
-          <Path d="M 50 66 L 55 70" stroke="#C0392B" strokeWidth="1.5" strokeLinecap="round" />
+          <Path d="M 43 66 L 57 66" stroke="#C0392B" strokeWidth="2.5" strokeLinecap="round" />
+          <Path d="M 51 66 L 56 70" stroke="#C0392B" strokeWidth="1.8" strokeLinecap="round" />
         </G>
       );
     case "excited":
       return (
         <G>
-          <Path d="M 38 64 Q 50 76 62 64 Q 56 68 50 68 Q 44 68 38 64 Z" fill="#C0392B" />
-          <Path d="M 38 64 Q 50 76 62 64" stroke="#8B0000" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-          <Path d="M 41 66 Q 50 70 59 66" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" fill="none" />
+          <Path d="M 37 63 Q 50 77 63 63 Q 56 68 50 68 Q 44 68 37 63 Z" fill="#C0392B" />
+          <Path d="M 37 63 Q 50 77 63 63" stroke="#8B0000" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          <Path d="M 41 67 Q 50 71 59 67" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" fill="none" />
+          {/* Teeth hint */}
+          <Rect x="42" y="63" width="16" height="4" rx="2" fill="rgba(255,255,255,0.5)" />
         </G>
       );
     case "studious":
       return (
-        <Path d="M 44 66 Q 50 69 56 66" stroke="#C0392B" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        <Path d="M 44 66 Q 50 70 56 66" stroke="#C0392B" strokeWidth="2" fill="none" strokeLinecap="round" />
       );
     case "calm":
       return (
-        <Path d="M 44 65 Q 50 67 56 65" stroke="#C0392B" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        <Path d="M 44 65 Q 50 67 56 65" stroke="#C0392B" strokeWidth="2" fill="none" strokeLinecap="round" />
       );
     case "determined":
       return (
         <G>
-          <Path d="M 42 66 Q 50 63 58 66" stroke="#C0392B" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <Path d="M 42 67 Q 50 63 58 67" stroke="#C0392B" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <Path d="M 45 68 L 55 68" stroke="#C0392B" strokeWidth="1" strokeLinecap="round" opacity={0.5} />
         </G>
       );
     default:
-      // happy
+      // happy — wide friendly smile
       return (
         <G>
-          <Path d="M 40 64 Q 50 73 60 64" stroke="#C0392B" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-          <Path d="M 44 66 Q 50 70 56 66" stroke="rgba(192,57,43,0.3)" strokeWidth="1" fill="none" />
+          <Path d="M 39 63 Q 50 74 61 63" stroke="#C0392B" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <Path d="M 43 66 Q 50 71 57 66" stroke="rgba(192,57,43,0.3)" strokeWidth="1.2" fill="none" />
         </G>
       );
   }
@@ -241,144 +252,141 @@ function AnimeMouth({ expression }: { expression: string }) {
 
 // ─── Eyebrows ────────────────────────────────────────────────────────────────
 
-function AnimeEyebrows({ expression, color }: { expression: string; color: string }) {
-  const isDetermined = expression === "determined";
-  const isCool = expression === "cool";
-  if (isDetermined) {
-    // Furrowed, angled inward
+function Eyebrows({ expression, color }: { expression: string; color: string }) {
+  if (expression === "determined") {
     return (
       <G>
-        <Path d="M 27 36 Q 36 33 45 37" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
-        <Path d="M 55 37 Q 64 33 73 36" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+        <Path d="M 27 35 Q 36 31 45 36" stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <Path d="M 55 36 Q 64 31 73 35" stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" />
       </G>
     );
   }
-  if (isCool) {
+  if (expression === "excited") {
     return (
       <G>
-        <Path d="M 27 37 Q 36 35 45 38" stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" />
-        <Path d="M 55 38 Q 64 35 73 37" stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        <Path d="M 28 33 Q 37 28 46 33" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+        <Path d="M 54 33 Q 63 28 72 33" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (expression === "cool") {
+    return (
+      <G>
+        <Path d="M 27 38 Q 36 36 45 39" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        <Path d="M 55 39 Q 64 36 73 38" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
       </G>
     );
   }
   return (
     <G>
-      <Path d="M 27 37 Q 37 32 46 36" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-      <Path d="M 54 36 Q 63 32 73 37" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <Path d="M 27 36 Q 37 31 46 35" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+      <Path d="M 54 35 Q 63 31 73 36" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
     </G>
   );
 }
 
-// ─── Clothing ────────────────────────────────────────────────────────────────
-
-function ClothingDetail({ style, color }: { style: string; color: string }) {
-  switch (style) {
-    case "uniform":
-      return (
-        <G>
-          {/* Sailor collar */}
-          <Path d="M 36 88 L 50 100 L 64 88 L 58 88 L 50 96 L 42 88 Z" fill={darken(color, 0.18)} />
-          <Path d="M 42 88 L 50 96 L 58 88" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" fill="none" />
-        </G>
-      );
-    case "sporty":
-      return (
-        <G>
-          <Rect x="26" y="90" width="8" height="36" rx="4" fill="rgba(255,255,255,0.3)" />
-          <Path d="M 50 88 L 50 128" stroke="rgba(255,255,255,0.25)" strokeWidth="2" />
-        </G>
-      );
-    case "formal":
-      return (
-        <G>
-          <Path d="M 26 96 L 44 102 L 44 126 L 26 126 Z" fill="rgba(0,0,0,0.2)" />
-          <Path d="M 74 96 L 56 102 L 56 126 L 74 126 Z" fill="rgba(0,0,0,0.2)" />
-          <Rect x="44" y="90" width="12" height="18" rx="2" fill="white" />
-        </G>
-      );
-    case "hoodie":
-      return (
-        <G>
-          <Path d="M 36 88 Q 50 82 64 88 L 64 96 Q 50 90 36 96 Z" fill={darken(color, 0.12)} />
-          <Rect x="44" y="100" width="12" height="24" rx="6" fill={darken(color, 0.08)} />
-        </G>
-      );
-    case "creative":
-      return (
-        <G>
-          <Circle cx="38" cy="100" r="4" fill="rgba(255,255,255,0.35)" />
-          <Circle cx="50" cy="108" r="4" fill="rgba(255,255,255,0.35)" />
-          <Circle cx="62" cy="100" r="4" fill="rgba(255,255,255,0.35)" />
-        </G>
-      );
-    default:
-      return null;
-  }
-}
-
-// ─── Full body anime avatar ───────────────────────────────────────────────────
+// ─── Full body avatar — organic, non-square body ──────────────────────────────
 
 export function CartoonAvatar({ avatar, size = 100 }: { avatar: AvatarData; size?: number }) {
-  const clothingColor = CLOTHING_COLORS[avatar.clothing] ?? "#1B3A6B";
+  const clothingColor = avatar.clothingColor ?? "#1B3A6B";
+  const darkerCloth = darken(clothingColor, 0.18);
+  const lighterCloth = lighten(clothingColor, 0.12);
   const darkerSkin = darken(avatar.skinTone, 0.12);
   const hairDark = darken(avatar.hairColor, 0.15);
   const w = 100;
-  const h = 160;
+  const h = 165;
   const svgH = size * (h / w);
 
   return (
     <View style={{ width: size, height: svgH }}>
       <Svg width={size} height={svgH} viewBox={`0 0 ${w} ${h}`}>
-        {/* ── Legs ── */}
-        <Rect x="31" y="126" width="16" height="30" rx="8" fill="#1B3A6B" />
-        <Rect x="53" y="126" width="16" height="30" rx="8" fill="#1B3A6B" />
-        {/* ── Shoes ── */}
-        <Ellipse cx="39" cy="158" rx="13" ry="6" fill="#1A1A1A" />
-        <Ellipse cx="61" cy="158" rx="13" ry="6" fill="#1A1A1A" />
-        {/* ── Body ── */}
-        <Rect x="27" y="88" width="46" height="42" rx="10" fill={clothingColor} />
-        {/* ── Arms ── */}
-        <Rect x="12" y="90" width="15" height="30" rx="7.5" fill={clothingColor} />
-        <Rect x="73" y="90" width="15" height="30" rx="7.5" fill={clothingColor} />
-        {/* ── Hands ── */}
-        <Ellipse cx="19.5" cy="122" rx="8.5" ry="6" fill={avatar.skinTone} />
-        <Ellipse cx="80.5" cy="122" rx="8.5" ry="6" fill={avatar.skinTone} />
-        {/* ── Clothing detail ── */}
-        <ClothingDetail style={avatar.clothing} color={clothingColor} />
+
+        {/* ── Legs — tapered pill shape ── */}
+        <Path d="M 31 128 C 28 128 26 132 26 138 L 28 158 Q 31 163 37 162 Q 43 163 44 158 L 44 134 C 44 130 42 128 40 128 Z" fill={darken(clothingColor, 0.4)} />
+        <Path d="M 56 128 C 53 128 51 132 51 138 L 53 158 Q 56 163 62 162 Q 68 163 69 158 L 67 134 C 67 130 65 128 62 128 Z" fill={darken(clothingColor, 0.4)} />
+
+        {/* ── Shoes — rounded, friendly ── */}
+        <Ellipse cx="37" cy="161" rx="13" ry="5.5" fill="#2A2A3E" />
+        <Ellipse cx="61" cy="161" rx="13" ry="5.5" fill="#2A2A3E" />
+        <Path d="M 25 160 Q 30 157 37 158" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        <Path d="M 49 160 Q 54 157 61 158" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+
+        {/* ── Body — organic pear/teardrop torso (wide at shoulders, gently tapered) ── */}
+        <Path
+          d="M 20 89 C 12 92 10 108 13 124 Q 16 136 50 138 Q 84 136 87 124 C 90 108 88 92 80 89 Q 66 82 50 83 Q 34 82 20 89 Z"
+          fill={clothingColor}
+        />
+
+        {/* ── Shirt highlight (subtle sheen on upper chest) ── */}
+        <Path
+          d="M 28 89 C 22 92 19 102 21 114 Q 24 118 32 116 Q 26 106 28 96 Z"
+          fill={lighterCloth}
+          opacity={0.3}
+        />
+
+        {/* ── V-neck collar ── */}
+        <Path d="M 36 90 L 50 105 L 64 90" stroke={darkerCloth} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M 36 90 L 50 105 L 64 90" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* ── Left arm — organic curved shape ── */}
+        <Path
+          d="M 18 92 C 10 96 8 112 10 122 Q 12 130 18 128 Q 22 128 24 124 L 22 108 L 22 94 Z"
+          fill={clothingColor}
+        />
+
+        {/* ── Right arm ── */}
+        <Path
+          d="M 82 92 C 90 96 92 112 90 122 Q 88 130 82 128 Q 78 128 76 124 L 78 108 L 78 94 Z"
+          fill={clothingColor}
+        />
+
+        {/* ── Hands — rounded, soft ── */}
+        <Ellipse cx="15" cy="127" rx="8" ry="6" fill={avatar.skinTone} />
+        <Ellipse cx="85" cy="127" rx="8" ry="6" fill={avatar.skinTone} />
+
         {/* ── Neck ── */}
-        <Rect x="45" y="78" width="10" height="13" rx="5" fill={avatar.skinTone} />
+        <Rect x="45" y="77" width="10" height="14" rx="5" fill={avatar.skinTone} />
+
         {/* ── Hair behind head ── */}
         <HairBehind style={avatar.hairStyle} color={avatar.hairColor} />
+
         {/* ── Ears ── */}
         <Ellipse cx="21" cy="50" rx="5.5" ry="7" fill={avatar.skinTone} />
         <Ellipse cx="79" cy="50" rx="5.5" ry="7" fill={avatar.skinTone} />
         <Ellipse cx="21" cy="50" rx="3" ry="4.5" fill={darkerSkin} />
         <Ellipse cx="79" cy="50" rx="3" ry="4.5" fill={darkerSkin} />
-        {/* ── Head (anime oval with pointed chin) ── */}
+
+        {/* ── Head — round oval with softer chin ── */}
         <Path
-          d="M 22 44 C 22 14 50 8 50 8 C 50 8 78 14 78 44 C 78 66 62 79 50 81 C 38 79 22 66 22 44 Z"
+          d="M 21 44 C 21 12 50 7 50 7 C 50 7 79 12 79 44 C 79 68 64 82 50 83 C 36 82 21 68 21 44 Z"
           fill={avatar.skinTone}
         />
-        {/* ── Hair front/top ── */}
+
+        {/* ── Hair ── */}
         <Hair style={avatar.hairStyle} color={avatar.hairColor} />
+
         {/* ── Eyebrows ── */}
-        <AnimeEyebrows expression={avatar.expression} color={hairDark} />
+        <Eyebrows expression={avatar.expression} color={hairDark} />
+
         {/* ── Eyes ── */}
-        <AnimeEye cx={37} eyeColor={avatar.eyeColor} expression={avatar.expression} />
-        <AnimeEye cx={63} eyeColor={avatar.eyeColor} expression={avatar.expression} />
-        {/* ── Nose (minimal anime style) ── */}
-        <Path d="M 48 57 Q 50 59 52 57" stroke={darkerSkin} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+        <Eye cx={36} eyeColor={avatar.eyeColor} expression={avatar.expression} />
+        <Eye cx={64} eyeColor={avatar.eyeColor} expression={avatar.expression} />
+
+        {/* ── Nose (minimal) ── */}
+        <Path d="M 48 57 Q 50 60 52 57" stroke={darkerSkin} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+
         {/* ── Mouth ── */}
-        <AnimeMouth expression={avatar.expression} />
+        <Mouth expression={avatar.expression} />
+
         {/* ── Cheek blush ── */}
-        <Ellipse cx="27" cy="56" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
-        <Ellipse cx="73" cy="56" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
+        <Ellipse cx="26" cy="58" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
+        <Ellipse cx="74" cy="58" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
       </Svg>
     </View>
   );
 }
 
-// ─── Head-only anime avatar (for leaderboard) ────────────────────────────────
+// ─── Head-only avatar (for lists/leaderboard) ────────────────────────────────
 
 export function CartoonAvatarHead({ avatar, size = 44 }: { avatar: AvatarData; size?: number }) {
   const darkerSkin = darken(avatar.skinTone, 0.12);
@@ -386,10 +394,9 @@ export function CartoonAvatarHead({ avatar, size = 44 }: { avatar: AvatarData; s
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* viewBox focuses on head: x 8→92, y 0→76 */}
-      <Svg width={size} height={size} viewBox="8 0 84 76">
-        {/* Hair behind (stub for ponytail/long) */}
-        {(avatar.hairStyle === "long_straight") && (
+      <Svg width={size} height={size} viewBox="8 0 84 84">
+        {/* Hair behind */}
+        {avatar.hairStyle === "long_straight" && (
           <G>
             <Rect x="16" y="44" width="12" height="34" rx="6" fill={avatar.hairColor} />
             <Rect x="72" y="44" width="12" height="34" rx="6" fill={avatar.hairColor} />
@@ -408,23 +415,23 @@ export function CartoonAvatarHead({ avatar, size = 44 }: { avatar: AvatarData; s
         <Ellipse cx="79" cy="50" rx="3" ry="4.5" fill={darkerSkin} />
         {/* Head */}
         <Path
-          d="M 22 44 C 22 14 50 8 50 8 C 50 8 78 14 78 44 C 78 66 62 79 50 81 C 38 79 22 66 22 44 Z"
+          d="M 21 44 C 21 12 50 7 50 7 C 50 7 79 12 79 44 C 79 68 64 82 50 83 C 36 82 21 68 21 44 Z"
           fill={avatar.skinTone}
         />
         {/* Hair */}
         <Hair style={avatar.hairStyle} color={avatar.hairColor} />
         {/* Eyebrows */}
-        <AnimeEyebrows expression={avatar.expression} color={hairDark} />
+        <Eyebrows expression={avatar.expression} color={hairDark} />
         {/* Eyes */}
-        <AnimeEye cx={37} eyeColor={avatar.eyeColor} expression={avatar.expression} />
-        <AnimeEye cx={63} eyeColor={avatar.eyeColor} expression={avatar.expression} />
+        <Eye cx={36} eyeColor={avatar.eyeColor} expression={avatar.expression} />
+        <Eye cx={64} eyeColor={avatar.eyeColor} expression={avatar.expression} />
         {/* Nose */}
-        <Path d="M 48 57 Q 50 59 52 57" stroke={darkerSkin} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+        <Path d="M 48 57 Q 50 60 52 57" stroke={darkerSkin} strokeWidth="1.4" fill="none" strokeLinecap="round" />
         {/* Mouth */}
-        <AnimeMouth expression={avatar.expression} />
+        <Mouth expression={avatar.expression} />
         {/* Cheeks */}
-        <Ellipse cx="27" cy="56" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
-        <Ellipse cx="73" cy="56" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
+        <Ellipse cx="26" cy="58" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
+        <Ellipse cx="74" cy="58" rx="9" ry="5.5" fill="rgba(255,140,120,0.22)" />
       </Svg>
     </View>
   );

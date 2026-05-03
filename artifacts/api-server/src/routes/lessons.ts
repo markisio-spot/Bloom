@@ -11,24 +11,24 @@ type LanguageSubject = "french" | "spanish" | "maltese" | "italian";
 // ── Language curriculum sections ──────────────────────────────────────────────
 
 const LANGUAGE_SECTIONS = [
-  { num: 1,  name: "Greetings & Farewells",      exerciseType: "vocabulary" },
-  { num: 2,  name: "Numbers 1–20",               exerciseType: "fill_blank" },
-  { num: 3,  name: "Colors",                     exerciseType: "matching"   },
-  { num: 4,  name: "Days of the Week",           exerciseType: "vocabulary" },
-  { num: 5,  name: "Months of the Year",         exerciseType: "fill_blank" },
-  { num: 6,  name: "Family Members",             exerciseType: "matching"   },
-  { num: 7,  name: "Food & Drinks",              exerciseType: "vocabulary" },
-  { num: 8,  name: "Clothing",                   exerciseType: "matching"   },
-  { num: 9,  name: "Weather & Seasons",          exerciseType: "fill_blank" },
-  { num: 10, name: "Grammar: Articles & Gender", exerciseType: "fill_blank" },
-  { num: 11, name: "Body Parts & Health",        exerciseType: "matching"   },
-  { num: 12, name: "Time Expressions",           exerciseType: "vocabulary" },
-  { num: 13, name: "Grammar: Present Tense Verbs", exerciseType: "fill_blank" },
-  { num: 14, name: "Animals & Nature",           exerciseType: "vocabulary" },
-  { num: 15, name: "Grammar: Adjectives",        exerciseType: "fill_blank" },
-  { num: 16, name: "Sentence Translation (Beginner)", exerciseType: "writing" },
-  { num: 17, name: "Grammar: Past Tense",        exerciseType: "fill_blank" },
-  { num: 18, name: "Sentence Translation (Advanced)", exerciseType: "writing" },
+  { num: 1,  name: "Greetings & Farewells",           exerciseType: "speak"      },
+  { num: 2,  name: "Numbers 1–20",                    exerciseType: "fill_blank" },
+  { num: 3,  name: "Colors",                          exerciseType: "speak"      },
+  { num: 4,  name: "Days of the Week",                exerciseType: "vocabulary" },
+  { num: 5,  name: "Months of the Year",              exerciseType: "fill_blank" },
+  { num: 6,  name: "Family Members",                  exerciseType: "matching"   },
+  { num: 7,  name: "Food & Drinks",                   exerciseType: "speak"      },
+  { num: 8,  name: "Clothing",                        exerciseType: "matching"   },
+  { num: 9,  name: "Weather & Seasons",               exerciseType: "fill_blank" },
+  { num: 10, name: "Grammar: Articles & Gender",      exerciseType: "fill_blank" },
+  { num: 11, name: "Body Parts & Health",             exerciseType: "matching"   },
+  { num: 12, name: "Time Expressions",                exerciseType: "vocabulary" },
+  { num: 13, name: "Grammar: Present Tense Verbs",    exerciseType: "fill_blank" },
+  { num: 14, name: "Animals & Nature",                exerciseType: "speak"      },
+  { num: 15, name: "Grammar: Adjectives",             exerciseType: "fill_blank" },
+  { num: 16, name: "Sentence Translation (Beginner)", exerciseType: "writing"    },
+  { num: 17, name: "Grammar: Past Tense",             exerciseType: "fill_blank" },
+  { num: 18, name: "Sentence Translation (Advanced)", exerciseType: "writing"    },
 ];
 
 const LANGUAGE_NAMES: Record<LanguageSubject, string> = {
@@ -49,14 +49,16 @@ Each question object must follow this exact structure:
   "options": ["<opt1>","<opt2>","<opt3>","<opt4>"] or null,
   "correctAnswer": "<correct answer>",
   "explanation": "<1-2 sentence explanation of WHY the correct answer is right, written simply for the student's grade level>",
-  "hint": "<a helpful nudge toward the answer WITHOUT revealing it — e.g. think about the rule for..., remember that..., the answer rhymes with... — max 1 sentence>",
+  "hint": "<a helpful nudge toward the answer WITHOUT revealing it — max 1 sentence>",
+  "speakText": "<the target-language word or phrase to pronounce aloud — for speak/vocabulary questions: the exact target-language word/phrase the student should say or hear; for fill_blank/writing: the correct target-language content; null for non-language questions>",
   "pairs": null
 }
 
 IMPORTANT:
-- Always include BOTH "explanation" and "hint" fields for every question.
-- The "hint" must NOT give away the answer. It should guide the student to think, not tell them.
+- Always include "explanation", "hint", and "speakText" fields for every question.
+- The "hint" must NOT give away the answer.
 - For match questions, set "pairs" to [{left:"...", right:"..."},...] and set "type" to "match", "options" to null, "correctAnswer" to "matched".
+- For non-language subjects, set "speakText" to null.
 `;
 
 // ── Prompt builder ─────────────────────────────────────────────────────────────
@@ -89,31 +91,31 @@ ${QUESTION_FORMAT}
 4. fill_blank equation (options: null)
 5. multiple_choice conceptual question (4 options)
 6. fill_blank equation (options: null)
-Make progressively harder. Set "pairs" to null for all.`,
-      multiple_choice: `Generate 5 grade-${level} math problems (arithmetic, algebra, or geometry). Each with 4 multiple choice options. Make them progressively harder.`,
-      fill_blank: `Generate 5 grade-${level} math equations with a blank to fill in. Example: "5 + __ = 12". Use type "fill_blank".`,
-      word_problem: `Generate 3 grade-${level} math word problems. Use type "multiple_choice" with 4 options each.`,
+Make progressively harder. Set "pairs" to null for all. Set "speakText" to null for all.`,
+      multiple_choice: `Generate 5 grade-${level} math problems. Each with 4 multiple choice options. Set "speakText" to null for all.`,
+      fill_blank: `Generate 5 grade-${level} math equations with a blank. Use type "fill_blank". Set "speakText" to null for all.`,
+      word_problem: `Generate 3 grade-${level} math word problems. Use type "multiple_choice" with 4 options each. Set "speakText" to null for all.`,
     };
-    const prompt = mathPrompts[exerciseType] ?? `Generate 5 grade-${level} math questions using type "multiple_choice".`;
+    const prompt = mathPrompts[exerciseType] ?? `Generate 5 grade-${level} math questions using type "multiple_choice". Set "speakText" to null for all.`;
     return baseInstructions + "\n\nSpecific instructions:\n" + prompt;
   }
 
   // ── Grammar ──
   if (subject === "grammar") {
     const grammarPrompts: Record<string, string> = {
-      spelling: `Generate 5 grade-${level} English spelling exercises. Show the word's definition or use it in a sentence, ask the student to choose the correct spelling. Use type "multiple_choice" with 4 options.`,
-      punctuation: `Generate 5 grade-${level} punctuation exercises. Show a sentence and ask what punctuation is missing or incorrect. Use type "multiple_choice".`,
-      parts_of_speech: `Generate 5 grade-${level} parts of speech exercises. Identify nouns, verbs, adjectives, etc. in sentences. Use type "multiple_choice".`,
-      word_definitions: `Generate 5 grade-${level} vocabulary/definition exercises. Show a word and ask for its meaning. Use type "multiple_choice" with 4 options.`,
+      spelling: `Generate 5 grade-${level} English spelling exercises. Use type "multiple_choice" with 4 options. Set "speakText" to null for all.`,
+      punctuation: `Generate 5 grade-${level} punctuation exercises. Use type "multiple_choice". Set "speakText" to null for all.`,
+      parts_of_speech: `Generate 5 grade-${level} parts of speech exercises. Use type "multiple_choice". Set "speakText" to null for all.`,
+      word_definitions: `Generate 5 grade-${level} vocabulary/definition exercises. Use type "multiple_choice" with 4 options. Set "speakText" to null for all.`,
     };
-    const prompt = grammarPrompts[exerciseType] ?? `Generate 5 grade-${level} English grammar questions using type "multiple_choice".`;
+    const prompt = grammarPrompts[exerciseType] ?? `Generate 5 grade-${level} English grammar questions using type "multiple_choice". Set "speakText" to null for all.`;
     return baseInstructions + "\n\nSpecific instructions:\n" + prompt;
   }
 
   // ── History / Geography ──
   if (subject === "history" || subject === "geography") {
     const topic = subject === "history" ? "historical event or person" : "country, landmark, or geographic feature";
-    const prompt = `Generate a ${subject} reading passage appropriate for grade ${level} (4-6 sentences covering an interesting ${topic}). Then create 4 comprehension questions in multiple_choice format (4 options each). Set "content" to the full reading passage.`;
+    const prompt = `Generate a ${subject} reading passage appropriate for grade ${level} (4-6 sentences covering an interesting ${topic}). Then create 4 comprehension questions in multiple_choice format (4 options each). Set "content" to the full reading passage. Set "speakText" to null for all questions.`;
     return baseInstructions + "\n\nSpecific instructions:\n" + prompt;
   }
 
@@ -124,25 +126,35 @@ Make progressively harder. Set "pairs" to null for all.`,
   const sectionPrompts: Record<string, string> = {
     vocabulary: `Generate 6 ${langName} vocabulary questions focused on the topic "${section.name}".
 Each question shows a ${langName} word/phrase and asks for the English meaning (or vice versa).
-Use type "multiple_choice" with 4 options. Make questions appropriate and varied.`,
+Use type "multiple_choice" with 4 options.
+For each question, set "speakText" to the ${langName} word/phrase from the question (always the target-language content to pronounce).`,
 
     fill_blank: `Generate 5 ${langName} fill-in-the-blank sentences focused on the topic "${section.name}".
 Each is a ${langName} sentence with one word/phrase missing. Use type "fill_blank", options: null.
-For "${section.name}" grammar sections, the blank should test the specific grammar rule being taught.`,
+Set "speakText" to the complete correct ${langName} sentence (with the blank filled in).`,
 
     matching: `Generate a matching exercise with 6 pairs focused on the topic "${section.name}" in ${langName}.
 Use type "match". Set "pairs" to [{left:"${langName} word/phrase", right:"English meaning"},...].
-Set "options" to null. Set "correctAnswer" to "matched".`,
+Set "options" to null. Set "correctAnswer" to "matched".
+Set "speakText" to a comma-separated list of the ${langName} words/phrases from the left column.`,
+
+    speak: `Generate 5 ${langName} speaking exercises focused on the topic "${section.name}".
+Each question shows an English word/phrase and the student must say it in ${langName}.
+Use type "speak". 
+The "question" field should be: "Say in ${langName}: [English word or phrase]".
+The "correctAnswer" field should be the exact correct ${langName} word/phrase.
+The "speakText" field must be exactly the ${langName} word/phrase the student needs to say (same as correctAnswer).
+Keep vocabulary practical and common for beginners learning "${section.name}".`,
 
     writing: `Generate 5 writing exercises focused on the topic "${section.name}" in ${langName}.
 ${languageSection && languageSection >= 16
-  ? `Each question provides an English sentence that the student must translate into ${langName}. Use type "write". The "question" field should be the English sentence to translate. The "correctAnswer" field should be the correct ${langName} translation.`
-  : `Each question provides an English word/phrase and the student must write it in ${langName}. Use type "write". Provide the English prompt in the "question" field and the correct ${langName} answer in "correctAnswer".`
+  ? `Each question provides an English sentence that the student must translate into ${langName}. Use type "write". The "question" field should be the English sentence to translate. The "correctAnswer" field should be the correct ${langName} translation. Set "speakText" to the correct ${langName} translation.`
+  : `Each question provides an English word/phrase and the student must write it in ${langName}. Use type "write". Provide the English prompt in the "question" field and the correct ${langName} answer in "correctAnswer". Set "speakText" to the correct ${langName} answer.`
 }`,
   };
 
   const specificPrompt = sectionPrompts[section.exerciseType] ??
-    `Generate 5 ${langName} questions about "${section.name}" using type "multiple_choice".`;
+    `Generate 5 ${langName} questions about "${section.name}" using type "multiple_choice". Set "speakText" to the target-language content for each question.`;
 
   const sectionContext = `
 This is Section ${section.num}/18 of the ${langName} curriculum: "${section.name}".

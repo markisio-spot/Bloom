@@ -35,6 +35,7 @@ interface LessonQuestion {
   correctAnswer: string;
   explanation?: string | null;
   hint?: string | null;
+  speakText?: string | null;
   pairs?: Array<{ left: string; right: string }> | null;
 }
 
@@ -119,9 +120,17 @@ export default function LessonScreen() {
   const [hintsUsed, setHintsUsed] = useState<Set<number>>(new Set());
   const [hintVisible, setHintVisible] = useState(false);
   const [finalCoinsEarned, setFinalCoinsEarned] = useState(0);
+  const [isPronouncing, setIsPronouncing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
+  const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const pronunciationSoundRef = useRef<Audio.Sound | null>(null);
+  const selfSoundRef = useRef<Audio.Sound | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const isLangLesson = ["french", "spanish", "maltese", "italian"].includes(params.subject ?? "");
 
   const generateMutation = useGenerateLesson({
     mutation: {
@@ -172,6 +181,31 @@ export default function LessonScreen() {
 
   const saveProgressMutation = useSaveProgress({ mutation: {} });
 
+  const pronounceMutation = useTextToSpeech({
+    mutation: {
+      onSuccess: async (data) => {
+        try {
+          await pronunciationSoundRef.current?.unloadAsync();
+          await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false });
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: `data:audio/mp3;base64,${data.audio}` },
+            { shouldPlay: true }
+          );
+          pronunciationSoundRef.current = sound;
+          setIsPronouncing(true);
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if ("didJustFinish" in status && status.didJustFinish) {
+              setIsPronouncing(false);
+            }
+          });
+        } catch {
+          setIsPronouncing(false);
+        }
+      },
+      onError: () => setIsPronouncing(false),
+    },
+  });
+
   const langSection = params.languageSection ? Number(params.languageSection) : undefined;
 
   useEffect(() => {
@@ -185,6 +219,8 @@ export default function LessonScreen() {
     });
     return () => {
       soundRef.current?.unloadAsync();
+      pronunciationSoundRef.current?.unloadAsync();
+      selfSoundRef.current?.unloadAsync();
     };
   }, []);
 
@@ -193,6 +229,19 @@ export default function LessonScreen() {
       ttsMutation.mutate({ data: { text: lesson.audioText, voice: "nova" } });
     }
   }, [phase]);
+
+  // Auto-pronounce target-language word when question changes (language lessons)
+  useEffect(() => {
+    if (phase === "quiz" && isLangLesson) {
+      const text = lesson?.questions[currentQ]?.speakText ?? lesson?.questions[currentQ]?.correctAnswer;
+      if (text) {
+        const timer = setTimeout(() => {
+          pronounceMutation.mutate({ data: { text, voice: "nova" } });
+        }, 700);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentQ, phase]);
 
   // Animate progress bar
   useEffect(() => {
@@ -306,8 +355,20 @@ export default function LessonScreen() {
     const hintPenalty = hintsCount * 5;
     const displayCoins = finalCoinsEarned || Math.max(5, baseCoins - hintPenalty);
 
+    const handleStartNext = () => {
+      router.replace({
+        pathname: "/(tabs)/lesson",
+        params: {
+          subject: params.subject ?? "",
+          exerciseType: "auto",
+          level: String(params.level ?? 1),
+          languageSection: String((langSection ?? 1) + 1),
+        },
+      } as Parameters<typeof router.replace>[0]);
+    };
+
     const handleContinue = () => {
-      router.dismissAll();
+      router.back();
     };
 
     const handleRetry = () => {
@@ -424,25 +485,49 @@ export default function LessonScreen() {
             )}
 
             {/* Buttons */}
-            <Pressable
-              style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-              onPress={handleContinue}
-            >
-              <Feather name="book-open" size={18} color="#fff" />
-              <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
-                Continue Learning
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.retryBtn, { borderColor: colors.border }]}
-              onPress={handleRetry}
-            >
-              <Feather name="refresh-cw" size={16} color={colors.primary} />
-              <Text style={[styles.retryBtnText, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-                Try Again
-              </Text>
-            </Pressable>
+            {isLangLesson && passed && langSection && langSection < 18 ? (
+              <>
+                <Pressable
+                  style={[styles.actionBtn, { backgroundColor: colors.correct }]}
+                  onPress={handleStartNext}
+                >
+                  <Feather name="arrow-right" size={18} color="#fff" />
+                  <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+                    Start Next Section
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.retryBtn, { borderColor: colors.border }]}
+                  onPress={handleContinue}
+                >
+                  <Feather name="list" size={16} color={colors.primary} />
+                  <Text style={[styles.retryBtnText, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                    Back to Sections
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable
+                  style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleContinue}
+                >
+                  <Feather name="book-open" size={18} color="#fff" />
+                  <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+                    {isLangLesson ? "Back to Sections" : "Continue Learning"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.retryBtn, { borderColor: colors.border }]}
+                  onPress={handleRetry}
+                >
+                  <Feather name="refresh-cw" size={16} color={colors.primary} />
+                  <Text style={[styles.retryBtnText, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                    Try Again
+                  </Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -494,6 +579,9 @@ export default function LessonScreen() {
     setTextInput("");
     setMatchSelected(null);
     setHintVisible(false);
+    setRecordingUri(null);
+    setIsRecording(false);
+    setRecordingObj(null);
     if (currentQ === questions.length - 1) {
       const finalPct = Math.round((score / questions.length) * 100);
       const baseCoins = Math.max(10, Math.round((finalPct / 100) * 50));
@@ -515,6 +603,54 @@ export default function LessonScreen() {
     } else {
       setCurrentQ((c) => c + 1);
     }
+  };
+
+  // ── Recording helpers ──────────────────────────────────────────────────────
+  const startRecording = async () => {
+    try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      setRecordingObj(recording);
+      setIsRecording(true);
+    } catch {}
+  };
+
+  const stopRecording = async () => {
+    if (!recordingObj) return;
+    try {
+      await recordingObj.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const uri = recordingObj.getURI();
+      setRecordingUri(uri ?? null);
+      setRecordingObj(null);
+      setIsRecording(false);
+    } catch { setIsRecording(false); }
+  };
+
+  const playOwnRecording = async () => {
+    if (!recordingUri) return;
+    try {
+      await selfSoundRef.current?.unloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync({ uri: recordingUri }, { shouldPlay: true });
+      selfSoundRef.current = sound;
+    } catch {}
+  };
+
+  const resetRecording = () => {
+    setRecordingUri(null);
+    setIsRecording(false);
+    setRecordingObj(null);
+  };
+
+  const handleSpeakSubmit = (gotIt: boolean) => {
+    const q = lesson?.questions[currentQ];
+    if (!q) return;
+    const answer = gotIt ? q.correctAnswer : "";
+    setAnswers((prev) => ({ ...prev, [currentQ]: answer }));
+    setSubmitted((prev) => ({ ...prev, [currentQ]: true }));
+    if (gotIt) setScore((s) => s + 1);
   };
 
   const handleMatchTap = (side: "left" | "right", value: string) => {
@@ -541,7 +677,9 @@ export default function LessonScreen() {
       ? !!textInput.trim()
       : q.type === "match"
         ? matchedPairs.length === (q.pairs?.length ?? 0)
-        : true;
+        : q.type === "speak"
+          ? false  // speak uses self-assessment buttons, not Check Answer
+          : true;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top"]}>
@@ -585,6 +723,33 @@ export default function LessonScreen() {
         <Text style={[styles.qTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
           {q.question}
         </Text>
+
+        {/* Pronunciation button (language lessons) */}
+        {isLangLesson && (q.speakText || q.correctAnswer) && (
+          <Pressable
+            style={[
+              styles.pronounceBtn,
+              {
+                borderColor: isPronouncing ? colors.primary : colors.primary + "50",
+                backgroundColor: isPronouncing ? colors.primary + "15" : "transparent",
+              },
+            ]}
+            onPress={() => {
+              const text = q.speakText ?? q.correctAnswer;
+              pronounceMutation.mutate({ data: { text, voice: "nova" } });
+            }}
+            disabled={isPronouncing || pronounceMutation.isPending}
+          >
+            <Feather
+              name={isPronouncing ? "volume-2" : "volume-1"}
+              size={16}
+              color={colors.primary}
+            />
+            <Text style={[styles.pronounceBtnText, { color: colors.primary, fontFamily: "Inter_500Medium" }]}>
+              {isPronouncing ? "Playing..." : "Hear it 🔊"}
+            </Text>
+          </Pressable>
+        )}
 
         {/* Hint button — only show if hint available and not submitted */}
         {q.hint && !isSubmitted && (
@@ -706,6 +871,92 @@ export default function LessonScreen() {
           </View>
         )}
 
+        {/* Speak exercise */}
+        {q.type === "speak" && (
+          <View style={styles.speakSection}>
+            {/* Word card */}
+            <View style={[styles.speakWordCard, { backgroundColor: colors.primary + "0E", borderColor: colors.primary + "30" }]}>
+              <Text style={[styles.speakWordLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                Say this in the target language:
+              </Text>
+              <Text style={[styles.speakWord, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                {q.correctAnswer}
+              </Text>
+            </View>
+
+            {/* Record / playback */}
+            {!isSubmitted && (
+              <>
+                {!recordingUri ? (
+                  <Pressable
+                    style={[
+                      styles.recordBtn,
+                      {
+                        backgroundColor: isRecording ? colors.wrong : colors.gold,
+                        shadowColor: isRecording ? colors.wrong : colors.gold,
+                      },
+                    ]}
+                    onPress={isRecording ? stopRecording : startRecording}
+                  >
+                    <Feather name={isRecording ? "square" : "mic"} size={22} color={isRecording ? "#fff" : "#1B3A6B"} />
+                    <Text style={[styles.recordBtnText, { color: isRecording ? "#fff" : "#1B3A6B", fontFamily: "Inter_600SemiBold" }]}>
+                      {isRecording ? "Stop Recording" : "🎤 Record Yourself"}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <View style={styles.playbackRow}>
+                    <Pressable
+                      style={[styles.playbackBtn, { backgroundColor: colors.card, borderColor: colors.primary + "50" }]}
+                      onPress={playOwnRecording}
+                    >
+                      <Feather name="play" size={14} color={colors.primary} />
+                      <Text style={[styles.playbackBtnText, { color: colors.primary, fontFamily: "Inter_500Medium" }]}>Play Mine</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.playbackBtn, { backgroundColor: colors.card, borderColor: colors.primary + "50" }]}
+                      onPress={() => {
+                        const text = q.speakText ?? q.correctAnswer;
+                        pronounceMutation.mutate({ data: { text, voice: "nova" } });
+                      }}
+                    >
+                      <Feather name="volume-2" size={14} color={colors.primary} />
+                      <Text style={[styles.playbackBtnText, { color: colors.primary, fontFamily: "Inter_500Medium" }]}>Play Correct</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.playbackBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      onPress={resetRecording}
+                    >
+                      <Feather name="rotate-ccw" size={14} color={colors.mutedForeground} />
+                      <Text style={[styles.playbackBtnText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>Retry</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* Self-assessment (after recording) */}
+            {recordingUri && !isSubmitted && (
+              <View style={styles.speakAssessRow}>
+                <Pressable
+                  style={[styles.gotItBtn, { backgroundColor: colors.correct }]}
+                  onPress={() => handleSpeakSubmit(true)}
+                >
+                  <Feather name="check" size={18} color="#fff" />
+                  <Text style={[styles.gotItBtnText, { color: "#fff", fontFamily: "Inter_700Bold" }]}>I got it! ✅</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.needPracticeBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+                  onPress={() => handleSpeakSubmit(false)}
+                >
+                  <Text style={[styles.needPracticeBtnText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                    Need more practice
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Matching */}
         {q.type === "match" && q.pairs && (
           <View style={styles.matchContainer}>
@@ -820,19 +1071,21 @@ export default function LessonScreen() {
         {/* Action button */}
         <View style={styles.actionRow}>
           {!isSubmitted ? (
-            <Pressable
-              style={[
-                styles.actionBtn,
-                { backgroundColor: colors.primary },
-                !canSubmit && { opacity: 0.45 },
-              ]}
-              onPress={handleSubmitCurrent}
-              disabled={!canSubmit}
-            >
-              <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
-                Check Answer
-              </Text>
-            </Pressable>
+            q.type === "speak" ? null : (
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: colors.primary },
+                  !canSubmit && { opacity: 0.45 },
+                ]}
+                onPress={handleSubmitCurrent}
+                disabled={!canSubmit}
+              >
+                <Text style={[styles.actionBtnText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+                  Check Answer
+                </Text>
+              </Pressable>
+            )
           ) : (
             <Pressable
               style={[styles.actionBtn, { backgroundColor: isCorrect ? colors.correct : colors.primary }]}
@@ -931,6 +1184,46 @@ const styles = StyleSheet.create({
     padding: 14, borderRadius: 14, borderWidth: 1.5, marginBottom: 16,
   },
   hintSummaryText: { flex: 1, fontSize: 13, lineHeight: 20 },
+
+  pronounceBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12,
+    borderWidth: 1.5, alignSelf: "flex-start", marginBottom: 14,
+  },
+  pronounceBtnText: { fontSize: 13 },
+
+  speakSection: { gap: 16, marginBottom: 8 },
+  speakWordCard: {
+    padding: 18, borderRadius: 18, borderWidth: 1.5,
+    alignItems: "center", gap: 8,
+  },
+  speakWordLabel: { fontSize: 12, textAlign: "center" },
+  speakWord: { fontSize: 22, textAlign: "center", lineHeight: 30 },
+  recordBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 10, paddingVertical: 16, borderRadius: 16,
+    shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
+  },
+  recordBtnText: { fontSize: 16 },
+  playbackRow: { flexDirection: "row", gap: 8 },
+  playbackBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5,
+  },
+  playbackBtnText: { fontSize: 13 },
+  speakAssessRow: { gap: 10 },
+  gotItBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, paddingVertical: 16, borderRadius: 16,
+    shadowColor: "#16A34A", shadowOpacity: 0.25, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 4,
+  },
+  gotItBtnText: { fontSize: 16 },
+  needPracticeBtn: {
+    alignItems: "center", justifyContent: "center",
+    paddingVertical: 14, borderRadius: 16, borderWidth: 1.5,
+  },
+  needPracticeBtnText: { fontSize: 14 },
 
   feedbackSection: { marginTop: 16, gap: 0 },
   feedbackBar: {
