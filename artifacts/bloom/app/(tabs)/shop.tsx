@@ -3,6 +3,7 @@ import {
   useListAnimals,
   useGetOwnedAnimals,
   usePurchaseAnimal,
+  useBuyStreakFreeze,
   useGetMe,
   getListAnimalsQueryKey,
   getGetOwnedAnimalsQueryKey,
@@ -58,6 +59,7 @@ export default function ShopScreen() {
   const queryClient = useQueryClient();
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [confirmModal, setConfirmModal] = useState(false);
+  const [freezeModal, setFreezeModal] = useState(false);
   const [filter, setFilter] = useState<Rarity | "all">("all");
 
   const { data: allAnimals = [], isLoading: animalsLoading } = useListAnimals({
@@ -84,8 +86,19 @@ export default function ShopScreen() {
     },
   });
 
+  const freezeMutation = useBuyStreakFreeze({
+    mutation: {
+      onSuccess: (data) => {
+        updateUser({ coins: data.newBalance, streakFreezes: data.streakFreezes });
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        setFreezeModal(false);
+      },
+    },
+  });
+
   const ownedIds = new Set((ownedAnimals as Animal[]).map((a) => a.id));
   const coins = me?.coins ?? 0;
+  const freezes = me?.streakFreezes ?? 0;
 
   const grouped = RARITY_ORDER.reduce<Record<string, Animal[]>>((acc, rarity) => {
     const filtered = (allAnimals as Animal[]).filter(
@@ -146,6 +159,56 @@ export default function ShopScreen() {
       </ScrollView>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        {/* Power-Ups section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={{ fontSize: 18 }}>⚡</Text>
+            <Text style={[styles.sectionTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+              Power-Ups
+            </Text>
+          </View>
+          <Pressable
+            style={[
+              styles.powerUpCard,
+              { backgroundColor: colors.card, borderColor: colors.primary + "40" },
+            ]}
+            onPress={() => setFreezeModal(true)}
+          >
+            <View style={[styles.powerUpIcon, { backgroundColor: colors.primary + "12" }]}>
+              <Text style={{ fontSize: 28 }}>🛡️</Text>
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={[styles.powerUpName, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                Streak Freeze
+              </Text>
+              <Text style={[styles.powerUpDesc, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                Protects your streak if you miss a day. Max 3.
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                <CoinIcon size={14} count={50} textStyle={{ color: colors.primary, fontSize: 12, fontFamily: "Inter_600SemiBold" }} />
+                {freezes > 0 && (
+                  <View style={[styles.ownedBadge, { backgroundColor: colors.primary + "18" }]}>
+                    <Text style={{ fontSize: 11, color: colors.primary, fontFamily: "Inter_600SemiBold" }}>
+                      {freezes}/3 owned
+                    </Text>
+                  </View>
+                )}
+                {freezes >= 3 && (
+                  <View style={[styles.ownedBadge, { backgroundColor: colors.correct }]}>
+                    <Feather name="check" size={11} color="#fff" />
+                    <Text style={[styles.ownedText, { fontFamily: "Inter_600SemiBold" }]}>Full</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            {freezes < 3 && (
+              <View style={[styles.powerUpBuyBtn, { backgroundColor: coins >= 50 ? colors.primary : colors.mutedForeground + "60" }]}>
+                <Text style={[styles.buyText, { fontSize: 13, fontFamily: "Inter_600SemiBold" }]}>Buy</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+
         {Object.entries(grouped).map(([rarity, animals]) => (
           <View key={rarity} style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -201,6 +264,54 @@ export default function ShopScreen() {
         ))}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Streak freeze confirm modal */}
+      <Modal visible={freezeModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.background }]}>
+            <Text style={styles.modalEmoji}>🛡️</Text>
+            <Text style={[styles.modalTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+              Buy Streak Freeze?
+            </Text>
+            <Text style={[styles.modalDesc, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+              Automatically protects your streak if you miss a day. You currently have {freezes}/3 freezes.
+            </Text>
+            <View style={[styles.modalCost, { backgroundColor: colors.gold + "15" }]}>
+              <CoinIcon size={22} count="50 coins" textStyle={{ color: colors.primary, fontSize: 16 }} />
+              {coins < 50 && (
+                <Text style={[styles.notEnoughText, { color: colors.wrong, fontFamily: "Inter_400Regular" }]}>
+                  (need {50 - coins} more)
+                </Text>
+              )}
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.cancelBtn, { borderColor: colors.border }]}
+                onPress={() => setFreezeModal(false)}
+              >
+                <Text style={[styles.cancelText, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.buyBtn,
+                  { backgroundColor: coins >= 50 && freezes < 3 ? colors.primary : colors.mutedForeground },
+                ]}
+                onPress={() => freezeMutation.mutate()}
+                disabled={coins < 50 || freezes >= 3 || freezeMutation.isPending}
+              >
+                <Text style={[styles.buyText, { fontFamily: "Inter_600SemiBold" }]}>
+                  {freezeMutation.isPending ? "Buying..." : "Buy Now"}
+                </Text>
+              </Pressable>
+            </View>
+            {freezeMutation.isError && (
+              <Text style={[{ color: colors.wrong, fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" }]}>
+                {(freezeMutation.error as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Purchase failed. Try again."}
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={confirmModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -318,6 +429,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   costText: { fontSize: 12 },
+  powerUpCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+  powerUpIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  powerUpName: { fontSize: 15 },
+  powerUpDesc: { fontSize: 12, lineHeight: 17 },
+  powerUpBuyBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

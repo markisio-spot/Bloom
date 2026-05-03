@@ -39,6 +39,7 @@ export interface User {
   displayName: string;
   coins: number;
   streakCount: number;
+  streakFreezes: number;
   lastActivityDate: string | null;
   lastGiftDate: string | null;
   avatarData: string | null;
@@ -79,6 +80,12 @@ export interface StreakResponse {
   streakCount: number;
   isNewDay: boolean;
   message: string;
+  freezeUsed?: boolean;
+}
+
+export interface BuyStreakFreezeResponse {
+  streakFreezes: number;
+  newBalance: number;
 }
 
 export type AnimalRarity = (typeof AnimalRarity)[keyof typeof AnimalRarity];

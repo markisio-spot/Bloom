@@ -213,6 +213,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /users/me/streak-freeze/buy:
+    post:
+      operationId: buyStreakFreeze
+      tags: [users]
+      summary: Purchase a streak freeze power-up for 50 coins (max 3)
+      responses:
+        "200":
+          description: Streak freeze purchased
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuyStreakFreezeResponse"
+        "400":
+          description: Not enough coins or already at max freezes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /animals:
     get:
       operationId: listAnimals
@@ -1036,6 +1061,8 @@ components:
           type: integer
         streakCount:
           type: integer
+        streakFreezes:
+          type: integer
         lastActivityDate:
           type: string
           nullable: true
@@ -1056,6 +1083,7 @@ components:
         - displayName
         - coins
         - streakCount
+        - streakFreezes
         - lastActivityDate
         - lastGiftDate
         - avatarData
@@ -1113,10 +1141,23 @@ components:
           type: boolean
         message:
           type: string
+        freezeUsed:
+          type: boolean
       required:
         - streakCount
         - isNewDay
         - message
+
+    BuyStreakFreezeResponse:
+      type: object
+      properties:
+        streakFreezes:
+          type: integer
+        newBalance:
+          type: integer
+      required:
+        - streakFreezes
+        - newBalance
 
     Animal:
       type: object

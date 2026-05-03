@@ -99,6 +99,7 @@ function sanitizeUser(user: typeof usersTable.$inferSelect) {
     displayName: user.displayName,
     coins: user.coins,
     streakCount: user.streakCount,
+    streakFreezes: user.streakFreezes,
     lastActivityDate: user.lastActivityDate,
     lastGiftDate: user.lastGiftDate,
     avatarData: user.avatarData,

@@ -13,6 +13,7 @@ export * from "./animalRarity";
 export * from "./authResponse";
 export * from "./batchGenerateBody";
 export * from "./batchGenerateResponse";
+export * from "./buyStreakFreezeResponse";
 export * from "./claimGiftResponse";
 export * from "./coinsResponse";
 export * from "./completeChallengeBody";

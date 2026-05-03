@@ -12,6 +12,7 @@ export const usersTable = pgTable("users", {
   lastActivityDate: text("last_activity_date"),
   lastGiftDate: text("last_gift_date"),
   avatarData: text("avatar_data"),
+  streakFreezes: integer("streak_freezes").notNull().default(0),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

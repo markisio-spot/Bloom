@@ -49,6 +49,7 @@ export const LoginResponse = zod.object({
     displayName: zod.string(),
     coins: zod.number(),
     streakCount: zod.number(),
+    streakFreezes: zod.number(),
     lastActivityDate: zod.string().nullable(),
     lastGiftDate: zod.string().nullable(),
     avatarData: zod.string().nullable(),
@@ -66,6 +67,7 @@ export const GetMeResponse = zod.object({
   displayName: zod.string(),
   coins: zod.number(),
   streakCount: zod.number(),
+  streakFreezes: zod.number(),
   lastActivityDate: zod.string().nullable(),
   lastGiftDate: zod.string().nullable(),
   avatarData: zod.string().nullable(),
@@ -89,6 +91,7 @@ export const UpdateMeResponse = zod.object({
   displayName: zod.string(),
   coins: zod.number(),
   streakCount: zod.number(),
+  streakFreezes: zod.number(),
   lastActivityDate: zod.string().nullable(),
   lastGiftDate: zod.string().nullable(),
   avatarData: zod.string().nullable(),
@@ -125,6 +128,15 @@ export const CheckInStreakResponse = zod.object({
   streakCount: zod.number(),
   isNewDay: zod.boolean(),
   message: zod.string(),
+  freezeUsed: zod.boolean().optional(),
+});
+
+/**
+ * @summary Purchase a streak freeze power-up for 50 coins (max 3)
+ */
+export const BuyStreakFreezeResponse = zod.object({
+  streakFreezes: zod.number(),
+  newBalance: zod.number(),
 });
 
 /**

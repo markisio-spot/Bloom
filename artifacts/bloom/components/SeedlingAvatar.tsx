@@ -151,8 +151,8 @@ export function SeedlingAvatar({
     <View style={{ width: size, height: svgH }}>
       <Svg width={size} height={svgH} viewBox={`0 0 ${W} ${H}`}>
         {/* Pot body */}
-        <Path d="M 28 132 L 32 162 Q 50 168 68 162 L 72 132 Z" fill="#1B3A6B" />
-        <Path d="M 32 135 L 34 158 Q 35 163 33 162" stroke="rgba(255,255,255,0.1)" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <Path d="M 28 132 L 32 162 Q 50 168 68 162 L 72 132 Z" fill="white" stroke="#D1D5DB" strokeWidth="1" />
+        <Path d="M 32 135 L 34 158 Q 35 163 33 162" stroke="rgba(180,180,180,0.35)" strokeWidth="3" fill="none" strokeLinecap="round" />
         {/* Pot rim (gold) */}
         <Ellipse cx={50} cy={132} rx={22} ry={6} fill="#F5C518" />
         <Path d="M 33 130 Q 50 127 67 130" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" fill="none" strokeLinecap="round" />

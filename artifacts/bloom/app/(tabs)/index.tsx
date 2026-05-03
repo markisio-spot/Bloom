@@ -120,6 +120,17 @@ export default function HomeScreen() {
                 day streak
               </Text>
             </View>
+            {(displayUser?.streakFreezes ?? 0) > 0 && (
+              <View style={[styles.streakItem, { backgroundColor: "rgba(255,255,255,0.12)" }]}>
+                <Text style={{ fontSize: 14 }}>🛡️</Text>
+                <Text style={[styles.streakCount, { color: "#fff", fontFamily: "Inter_700Bold" }]}>
+                  {displayUser?.streakFreezes}
+                </Text>
+                <Text style={[styles.streakLabel, { color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular" }]}>
+                  {displayUser?.streakFreezes === 1 ? "freeze" : "freezes"}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -267,7 +278,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-  streakRow: { marginTop: 16 },
+  streakRow: { marginTop: 16, flexDirection: "row", gap: 8, flexWrap: "wrap" },
   streakItem: {
     flexDirection: "row",
     alignItems: "center",

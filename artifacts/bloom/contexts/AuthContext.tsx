@@ -18,6 +18,7 @@ interface AuthUser {
   displayName: string;
   coins: number;
   streakCount: number;
+  streakFreezes: number;
   lastActivityDate: string | null;
   lastGiftDate: string | null;
   avatarData: string | null;

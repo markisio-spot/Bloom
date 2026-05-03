@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface StreakResponse {
-  streakCount: number;
-  isNewDay: boolean;
-  message: string;
-  freezeUsed?: boolean;
+export interface BuyStreakFreezeResponse {
+  streakFreezes: number;
+  newBalance: number;
 }

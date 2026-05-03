@@ -22,6 +22,7 @@ import type {
   AuthResponse,
   BatchGenerateBody,
   BatchGenerateResponse,
+  BuyStreakFreezeResponse,
   ClaimGiftResponse,
   CoinsResponse,
   CompleteChallengeBody,
@@ -721,6 +722,87 @@ export const useCheckInStreak = <
   TContext
 > => {
   return useMutation(getCheckInStreakMutationOptions(options));
+};
+
+/**
+ * @summary Purchase a streak freeze power-up for 50 coins (max 3)
+ */
+export const getBuyStreakFreezeUrl = () => {
+  return `/api/users/me/streak-freeze/buy`;
+};
+
+export const buyStreakFreeze = async (
+  options?: RequestInit,
+): Promise<BuyStreakFreezeResponse> => {
+  return customFetch<BuyStreakFreezeResponse>(getBuyStreakFreezeUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getBuyStreakFreezeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof buyStreakFreeze>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof buyStreakFreeze>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["buyStreakFreeze"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof buyStreakFreeze>>,
+    void
+  > = () => {
+    return buyStreakFreeze(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BuyStreakFreezeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof buyStreakFreeze>>
+>;
+
+export type BuyStreakFreezeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Purchase a streak freeze power-up for 50 coins (max 3)
+ */
+export const useBuyStreakFreeze = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof buyStreakFreeze>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof buyStreakFreeze>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getBuyStreakFreezeMutationOptions(options));
 };
 
 /**

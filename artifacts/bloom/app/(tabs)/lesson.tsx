@@ -606,6 +606,62 @@ export default function LessonScreen() {
               </View>
             )}
 
+            {/* Vocab review for language lessons */}
+            {isLangLesson && (lesson?.vocabulary?.length ?? 0) > 0 && (
+              <View style={styles.reviewSection}>
+                <Text style={[styles.reviewTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                  📚 Word Review
+                </Text>
+                <Text style={[styles.vocabIntro, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                  Tap any word to hear it again.
+                </Text>
+                {(lesson?.vocabulary ?? []).map((item, idx) => {
+                  const isPlaying = vocabPlayingIdx === idx && isPronouncing;
+                  return (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.vocabCard,
+                        {
+                          backgroundColor: isPlaying ? colors.primary + "0D" : colors.card,
+                          borderColor: isPlaying ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[styles.vocabWord, { color: colors.primary, fontFamily: "Inter_700Bold", fontSize: 17 }]}>
+                          {item.word}
+                        </Text>
+                        <Text style={[styles.vocabPhonetic, { color: colors.gold, fontFamily: "Inter_400Regular" }]}>
+                          {item.pronunciation}
+                        </Text>
+                        <Text style={[styles.vocabMeaning, { color: colors.foreground, fontFamily: "Inter_400Regular", fontSize: 13 }]}>
+                          {item.meaning}
+                        </Text>
+                      </View>
+                      <Pressable
+                        style={[
+                          styles.vocabSpeakBtn,
+                          { backgroundColor: isPlaying ? colors.primary : colors.primary + "14", width: 38, height: 38, borderRadius: 19 },
+                        ]}
+                        onPress={() => {
+                          setVocabPlayingIdx(idx);
+                          pronounceMutation.mutate({ data: { text: item.word, voice: "nova" } });
+                        }}
+                        disabled={isPronouncing && !isPlaying}
+                      >
+                        <Feather
+                          name={isPlaying ? "volume-2" : "volume-1"}
+                          size={16}
+                          color={isPlaying ? "#fff" : colors.primary}
+                        />
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
             {/* Buttons */}
             {isLangLesson && passed && langSection && langSection < 18 ? (
               <>
