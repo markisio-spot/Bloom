@@ -52,6 +52,7 @@ export const LoginResponse = zod.object({
     lastActivityDate: zod.string().nullable(),
     lastGiftDate: zod.string().nullable(),
     avatarData: zod.string().nullable(),
+    isAdmin: zod.boolean(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -68,6 +69,7 @@ export const GetMeResponse = zod.object({
   lastActivityDate: zod.string().nullable(),
   lastGiftDate: zod.string().nullable(),
   avatarData: zod.string().nullable(),
+  isAdmin: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
 
@@ -90,6 +92,7 @@ export const UpdateMeResponse = zod.object({
   lastActivityDate: zod.string().nullable(),
   lastGiftDate: zod.string().nullable(),
   avatarData: zod.string().nullable(),
+  isAdmin: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
 
@@ -387,6 +390,109 @@ export const TranscribeSpeechBody = zod.object({
 
 export const TranscribeSpeechResponse = zod.object({
   text: zod.string(),
+});
+
+/**
+ * @summary Get question counts per subject (admin only)
+ */
+export const GetQuestionStatsResponseItem = zod.object({
+  subject: zod.string(),
+  count: zod.number(),
+});
+export const GetQuestionStatsResponse = zod.array(GetQuestionStatsResponseItem);
+
+/**
+ * @summary List questions with optional filters (admin only)
+ */
+export const listQuestionsQueryLimitDefault = 50;
+export const listQuestionsQueryOffsetDefault = 0;
+
+export const ListQuestionsQueryParams = zod.object({
+  subject: zod.coerce.string().optional(),
+  grade: zod.coerce.number().optional(),
+  exerciseType: zod.coerce.string().optional(),
+  languageSection: zod.coerce.number().optional(),
+  limit: zod.coerce.number().default(listQuestionsQueryLimitDefault),
+  offset: zod.coerce.number().default(listQuestionsQueryOffsetDefault),
+});
+
+export const ListQuestionsResponse = zod.object({
+  questions: zod.array(
+    zod.object({
+      id: zod.number(),
+      subject: zod.string(),
+      grade: zod.number(),
+      exerciseType: zod.string(),
+      languageSection: zod.number().nullish(),
+      questionData: zod.object({}).passthrough(),
+      isActive: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Add a single question (admin only)
+ */
+export const AddQuestionBody = zod.object({
+  subject: zod.string(),
+  grade: zod.number(),
+  exerciseType: zod.string(),
+  languageSection: zod.number().optional(),
+  questionData: zod.object({}).passthrough(),
+});
+
+/**
+ * @summary Trigger AI batch question generation (admin only)
+ */
+export const generateBatchBodyQuestionsPerComboDefault = 10;
+
+export const GenerateBatchBody = zod.object({
+  subject: zod.string().optional(),
+  questionsPerCombo: zod
+    .number()
+    .default(generateBatchBodyQuestionsPerComboDefault),
+});
+
+export const GenerateBatchResponse = zod.object({
+  message: zod.string(),
+  totalTasks: zod.number(),
+  subject: zod.string(),
+});
+
+/**
+ * @summary Update a question (admin only)
+ */
+export const UpdateQuestionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateQuestionBody = zod.object({
+  questionData: zod.object({}).passthrough().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateQuestionResponse = zod.object({
+  id: zod.number(),
+  subject: zod.string(),
+  grade: zod.number(),
+  exerciseType: zod.string(),
+  languageSection: zod.number().nullish(),
+  questionData: zod.object({}).passthrough(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Soft-delete a question (admin only)
+ */
+export const DeleteQuestionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteQuestionResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**

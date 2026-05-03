@@ -28,6 +28,8 @@ tags:
     description: Friends and social features
   - name: openai
     description: OpenAI AI chat, image, and audio operations
+  - name: questions
+    description: Question bank management (admin only)
 paths:
   /healthz:
     get:
@@ -539,6 +541,175 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /questions/stats:
+    get:
+      operationId: getQuestionStats
+      tags: [questions]
+      summary: Get question counts per subject (admin only)
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuestionStat"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /questions:
+    get:
+      operationId: listQuestions
+      tags: [questions]
+      summary: List questions with optional filters (admin only)
+      parameters:
+        - name: subject
+          in: query
+          schema:
+            type: string
+        - name: grade
+          in: query
+          schema:
+            type: integer
+        - name: exerciseType
+          in: query
+          schema:
+            type: string
+        - name: languageSection
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Question list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionListResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: addQuestion
+      tags: [questions]
+      summary: Add a single question (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddQuestionBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoredQuestion"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /questions/generate-batch:
+    post:
+      operationId: generateBatch
+      tags: [questions]
+      summary: Trigger AI batch question generation (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchGenerateBody"
+      responses:
+        "200":
+          description: Batch started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchGenerateResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /questions/{id}:
+    put:
+      operationId: updateQuestion
+      tags: [questions]
+      summary: Update a question (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuestionBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoredQuestion"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteQuestion
+      tags: [questions]
+      summary: Soft-delete a question (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /daily-challenge:
     get:
       operationId: getDailyChallenge
@@ -874,6 +1045,8 @@ components:
         avatarData:
           type: string
           nullable: true
+        isAdmin:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -886,6 +1059,7 @@ components:
         - lastActivityDate
         - lastGiftDate
         - avatarData
+        - isAdmin
         - createdAt
 
     UpdateUserBody:
@@ -1450,6 +1624,110 @@ components:
           enum: [accepted, declined]
       required:
         - status
+
+    StoredQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        subject:
+          type: string
+        grade:
+          type: integer
+        exerciseType:
+          type: string
+        languageSection:
+          type: integer
+          nullable: true
+        questionData:
+          type: object
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - subject
+        - grade
+        - exerciseType
+        - questionData
+        - isActive
+        - createdAt
+
+    QuestionStat:
+      type: object
+      properties:
+        subject:
+          type: string
+        count:
+          type: integer
+      required:
+        - subject
+        - count
+
+    QuestionListResponse:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/StoredQuestion"
+        total:
+          type: integer
+      required:
+        - questions
+        - total
+
+    AddQuestionBody:
+      type: object
+      properties:
+        subject:
+          type: string
+        grade:
+          type: integer
+        exerciseType:
+          type: string
+        languageSection:
+          type: integer
+        questionData:
+          type: object
+      required:
+        - subject
+        - grade
+        - exerciseType
+        - questionData
+
+    UpdateQuestionBody:
+      type: object
+      properties:
+        questionData:
+          type: object
+        isActive:
+          type: boolean
+
+    BatchGenerateBody:
+      type: object
+      properties:
+        subject:
+          type: string
+        questionsPerCombo:
+          type: integer
+          default: 10
+
+    BatchGenerateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        totalTasks:
+          type: integer
+        subject:
+          type: string
+      required:
+        - message
+        - totalTasks
+        - subject
 
     SuccessResponse:
       type: object

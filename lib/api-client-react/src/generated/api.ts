@@ -17,8 +17,11 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AddQuestionBody,
   Animal,
   AuthResponse,
+  BatchGenerateBody,
+  BatchGenerateResponse,
   ClaimGiftResponse,
   CoinsResponse,
   CompleteChallengeBody,
@@ -36,6 +39,7 @@ import type {
   HealthStatus,
   LeaderboardEntry,
   Lesson,
+  ListQuestionsParams,
   LoginBody,
   OpenaiConversation,
   OpenaiConversationWithMessages,
@@ -43,6 +47,8 @@ import type {
   OpenaiMessage,
   PurchaseAnimalBody,
   PurchaseAnimalResponse,
+  QuestionListResponse,
+  QuestionStat,
   RegisterBody,
   RespondFriendRequestBody,
   SaveProgressBody,
@@ -50,6 +56,7 @@ import type {
   SendFriendRequestBody,
   SendOpenaiMessageBody,
   SendOpenaiVoiceMessageBody,
+  StoredQuestion,
   StreakResponse,
   SubjectProgress,
   SuccessResponse,
@@ -57,6 +64,7 @@ import type {
   TTSResponse,
   TranscribeBody,
   TranscribeResponse,
+  UpdateQuestionBody,
   UpdateUserBody,
   User,
   UserSearchResult,
@@ -1857,6 +1865,518 @@ export const useTranscribeSpeech = <
   TContext
 > => {
   return useMutation(getTranscribeSpeechMutationOptions(options));
+};
+
+/**
+ * @summary Get question counts per subject (admin only)
+ */
+export const getGetQuestionStatsUrl = () => {
+  return `/api/questions/stats`;
+};
+
+export const getQuestionStats = async (
+  options?: RequestInit,
+): Promise<QuestionStat[]> => {
+  return customFetch<QuestionStat[]>(getGetQuestionStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetQuestionStatsQueryKey = () => {
+  return [`/api/questions/stats`] as const;
+};
+
+export const getGetQuestionStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getQuestionStats>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getQuestionStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetQuestionStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getQuestionStats>>
+  > = ({ signal }) => getQuestionStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getQuestionStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetQuestionStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getQuestionStats>>
+>;
+export type GetQuestionStatsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get question counts per subject (admin only)
+ */
+
+export function useGetQuestionStats<
+  TData = Awaited<ReturnType<typeof getQuestionStats>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getQuestionStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetQuestionStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List questions with optional filters (admin only)
+ */
+export const getListQuestionsUrl = (params?: ListQuestionsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/questions?${stringifiedParams}`
+    : `/api/questions`;
+};
+
+export const listQuestions = async (
+  params?: ListQuestionsParams,
+  options?: RequestInit,
+): Promise<QuestionListResponse> => {
+  return customFetch<QuestionListResponse>(getListQuestionsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListQuestionsQueryKey = (params?: ListQuestionsParams) => {
+  return [`/api/questions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListQuestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listQuestions>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListQuestionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQuestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListQuestionsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listQuestions>>> = ({
+    signal,
+  }) => listQuestions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listQuestions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListQuestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listQuestions>>
+>;
+export type ListQuestionsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List questions with optional filters (admin only)
+ */
+
+export function useListQuestions<
+  TData = Awaited<ReturnType<typeof listQuestions>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListQuestionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQuestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListQuestionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a single question (admin only)
+ */
+export const getAddQuestionUrl = () => {
+  return `/api/questions`;
+};
+
+export const addQuestion = async (
+  addQuestionBody: AddQuestionBody,
+  options?: RequestInit,
+): Promise<StoredQuestion> => {
+  return customFetch<StoredQuestion>(getAddQuestionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addQuestionBody),
+  });
+};
+
+export const getAddQuestionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addQuestion>>,
+    TError,
+    { data: BodyType<AddQuestionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addQuestion>>,
+  TError,
+  { data: BodyType<AddQuestionBody> },
+  TContext
+> => {
+  const mutationKey = ["addQuestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addQuestion>>,
+    { data: BodyType<AddQuestionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return addQuestion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addQuestion>>
+>;
+export type AddQuestionMutationBody = BodyType<AddQuestionBody>;
+export type AddQuestionMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add a single question (admin only)
+ */
+export const useAddQuestion = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addQuestion>>,
+    TError,
+    { data: BodyType<AddQuestionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addQuestion>>,
+  TError,
+  { data: BodyType<AddQuestionBody> },
+  TContext
+> => {
+  return useMutation(getAddQuestionMutationOptions(options));
+};
+
+/**
+ * @summary Trigger AI batch question generation (admin only)
+ */
+export const getGenerateBatchUrl = () => {
+  return `/api/questions/generate-batch`;
+};
+
+export const generateBatch = async (
+  batchGenerateBody: BatchGenerateBody,
+  options?: RequestInit,
+): Promise<BatchGenerateResponse> => {
+  return customFetch<BatchGenerateResponse>(getGenerateBatchUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(batchGenerateBody),
+  });
+};
+
+export const getGenerateBatchMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateBatch>>,
+    TError,
+    { data: BodyType<BatchGenerateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateBatch>>,
+  TError,
+  { data: BodyType<BatchGenerateBody> },
+  TContext
+> => {
+  const mutationKey = ["generateBatch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateBatch>>,
+    { data: BodyType<BatchGenerateBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateBatch(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateBatchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateBatch>>
+>;
+export type GenerateBatchMutationBody = BodyType<BatchGenerateBody>;
+export type GenerateBatchMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Trigger AI batch question generation (admin only)
+ */
+export const useGenerateBatch = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateBatch>>,
+    TError,
+    { data: BodyType<BatchGenerateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateBatch>>,
+  TError,
+  { data: BodyType<BatchGenerateBody> },
+  TContext
+> => {
+  return useMutation(getGenerateBatchMutationOptions(options));
+};
+
+/**
+ * @summary Update a question (admin only)
+ */
+export const getUpdateQuestionUrl = (id: number) => {
+  return `/api/questions/${id}`;
+};
+
+export const updateQuestion = async (
+  id: number,
+  updateQuestionBody: UpdateQuestionBody,
+  options?: RequestInit,
+): Promise<StoredQuestion> => {
+  return customFetch<StoredQuestion>(getUpdateQuestionUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateQuestionBody),
+  });
+};
+
+export const getUpdateQuestionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateQuestion>>,
+    TError,
+    { id: number; data: BodyType<UpdateQuestionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateQuestion>>,
+  TError,
+  { id: number; data: BodyType<UpdateQuestionBody> },
+  TContext
+> => {
+  const mutationKey = ["updateQuestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateQuestion>>,
+    { id: number; data: BodyType<UpdateQuestionBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateQuestion(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateQuestion>>
+>;
+export type UpdateQuestionMutationBody = BodyType<UpdateQuestionBody>;
+export type UpdateQuestionMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a question (admin only)
+ */
+export const useUpdateQuestion = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateQuestion>>,
+    TError,
+    { id: number; data: BodyType<UpdateQuestionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateQuestion>>,
+  TError,
+  { id: number; data: BodyType<UpdateQuestionBody> },
+  TContext
+> => {
+  return useMutation(getUpdateQuestionMutationOptions(options));
+};
+
+/**
+ * @summary Soft-delete a question (admin only)
+ */
+export const getDeleteQuestionUrl = (id: number) => {
+  return `/api/questions/${id}`;
+};
+
+export const deleteQuestion = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getDeleteQuestionUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteQuestionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteQuestion>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteQuestion>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteQuestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteQuestion>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteQuestion(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteQuestion>>
+>;
+
+export type DeleteQuestionMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Soft-delete a question (admin only)
+ */
+export const useDeleteQuestion = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteQuestion>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteQuestion>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteQuestionMutationOptions(options));
 };
 
 /**

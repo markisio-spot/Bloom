@@ -2,6 +2,8 @@ import { Router } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { textToSpeech, speechToText } from "@workspace/integrations-openai-ai-server/audio";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth.js";
+import { db, questionsTable } from "@workspace/db";
+import { and, eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -165,6 +167,8 @@ Tailor difficulty to a student who is learning ${langName} at the ${section.num 
   return baseInstructions + sectionContext + "\n\nSpecific instructions:\n" + specificPrompt;
 }
 
+export { buildLessonPrompt };
+
 // ── Routes ─────────────────────────────────────────────────────────────────────
 
 router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) => {
@@ -188,6 +192,39 @@ router.post("/lessons/generate", authMiddleware, async (req: AuthRequest, res) =
   const type = exerciseType ?? (subject === "math" ? "mixed" : section?.exerciseType ?? "multiple_choice");
   const lvl = level ?? 5;
 
+  // ── Try DB first ─────────────────────────────────────────────────────────────
+  const conditions = [
+    eq(questionsTable.subject, subject),
+    eq(questionsTable.grade, lvl),
+    eq(questionsTable.isActive, true),
+  ] as Parameters<typeof and>;
+  if (isLanguage && languageSection) {
+    conditions.push(eq(questionsTable.languageSection, languageSection));
+  }
+
+  const [{ qcount }] = await db.select({ qcount: sql<number>`count(*)` }).from(questionsTable).where(and(...conditions));
+
+  if (Number(qcount) >= 10) {
+    const dbRows = await db.select().from(questionsTable)
+      .where(and(...conditions))
+      .orderBy(sql`RANDOM()`)
+      .limit(10);
+
+    const dbLesson = {
+      id: `db-${Date.now()}`,
+      subject,
+      exerciseType: type,
+      level: lvl,
+      title: `${subject.charAt(0).toUpperCase() + subject.slice(1)} — Grade ${lvl}`,
+      content: "",
+      audioText: null,
+      questions: dbRows.map((r) => r.questionData),
+    };
+    res.json(dbLesson);
+    return;
+  }
+
+  // ── Fallback: AI generation ───────────────────────────────────────────────────
   const prompt = buildLessonPrompt(subject, type, lvl, languageSection ?? 1);
 
   const completion = await openai.chat.completions.create({

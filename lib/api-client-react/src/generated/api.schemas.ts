@@ -42,6 +42,7 @@ export interface User {
   lastActivityDate: string | null;
   lastGiftDate: string | null;
   avatarData: string | null;
+  isAdmin: boolean;
   createdAt: string;
 }
 
@@ -360,10 +361,70 @@ export interface RespondFriendRequestBody {
   status: RespondFriendRequestBodyStatus;
 }
 
+export type StoredQuestionQuestionData = { [key: string]: unknown };
+
+export interface StoredQuestion {
+  id: number;
+  subject: string;
+  grade: number;
+  exerciseType: string;
+  languageSection?: number | null;
+  questionData: StoredQuestionQuestionData;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface QuestionStat {
+  subject: string;
+  count: number;
+}
+
+export interface QuestionListResponse {
+  questions: StoredQuestion[];
+  total: number;
+}
+
+export type AddQuestionBodyQuestionData = { [key: string]: unknown };
+
+export interface AddQuestionBody {
+  subject: string;
+  grade: number;
+  exerciseType: string;
+  languageSection?: number;
+  questionData: AddQuestionBodyQuestionData;
+}
+
+export type UpdateQuestionBodyQuestionData = { [key: string]: unknown };
+
+export interface UpdateQuestionBody {
+  questionData?: UpdateQuestionBodyQuestionData;
+  isActive?: boolean;
+}
+
+export interface BatchGenerateBody {
+  subject?: string;
+  questionsPerCombo?: number;
+}
+
+export interface BatchGenerateResponse {
+  message: string;
+  totalTasks: number;
+  subject: string;
+}
+
 export interface SuccessResponse {
   success: boolean;
 }
 
 export type SearchUsersParams = {
   q: string;
+};
+
+export type ListQuestionsParams = {
+  subject?: string;
+  grade?: number;
+  exerciseType?: string;
+  languageSection?: number;
+  limit?: number;
+  offset?: number;
 };

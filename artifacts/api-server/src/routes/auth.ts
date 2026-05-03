@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { authMiddleware, signToken, type AuthRequest } from "../middlewares/auth.js";
 
 const router = Router();
@@ -33,6 +33,9 @@ router.post("/auth/register", async (req, res) => {
     return;
   }
 
+  const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(usersTable);
+  const isFirstUser = Number(count) === 0;
+
   const passwordHash = await bcrypt.hash(password, 10);
   const [user] = await db.insert(usersTable).values({
     username: username.toLowerCase(),
@@ -40,6 +43,7 @@ router.post("/auth/register", async (req, res) => {
     displayName,
     coins: 100,
     streakCount: 0,
+    isAdmin: isFirstUser,
   }).returning();
 
   const token = signToken(user.id);
@@ -98,6 +102,7 @@ function sanitizeUser(user: typeof usersTable.$inferSelect) {
     lastActivityDate: user.lastActivityDate,
     lastGiftDate: user.lastGiftDate,
     avatarData: user.avatarData,
+    isAdmin: user.isAdmin,
     createdAt: user.createdAt,
   };
 }

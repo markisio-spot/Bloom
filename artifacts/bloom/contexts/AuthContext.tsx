@@ -10,6 +10,7 @@ import React, {
 } from "react";
 
 const TOKEN_KEY = "bloom_token";
+const USER_KEY = "bloom_user";
 
 interface AuthUser {
   id: number;
@@ -20,6 +21,7 @@ interface AuthUser {
   lastActivityDate: string | null;
   lastGiftDate: string | null;
   avatarData: string | null;
+  isAdmin: boolean;
   createdAt: string;
 }
 
@@ -58,8 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const stored = await AsyncStorage.getItem(TOKEN_KEY);
+        const storedUser = await AsyncStorage.getItem(USER_KEY);
         if (stored) {
           setToken(stored);
+          if (storedUser) {
+            setUser(JSON.parse(storedUser) as AuthUser);
+          }
         }
       } catch {
         // ignore
@@ -71,19 +77,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (newToken: string, newUser: AuthUser) => {
     await AsyncStorage.setItem(TOKEN_KEY, newToken);
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
   }, []);
 
   const logout = useCallback(async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
+    await AsyncStorage.removeItem(USER_KEY);
     setToken(null);
     setUser(null);
     queryClient.clear();
   }, [queryClient]);
 
   const updateUser = useCallback((updates: Partial<AuthUser>) => {
-    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updates };
+      AsyncStorage.setItem(USER_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
   }, []);
 
   return (

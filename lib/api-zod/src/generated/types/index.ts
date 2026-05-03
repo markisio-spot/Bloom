@@ -6,9 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./addQuestionBody";
+export * from "./addQuestionBodyQuestionData";
 export * from "./animal";
 export * from "./animalRarity";
 export * from "./authResponse";
+export * from "./batchGenerateBody";
+export * from "./batchGenerateResponse";
 export * from "./claimGiftResponse";
 export * from "./coinsResponse";
 export * from "./completeChallengeBody";
@@ -30,6 +34,7 @@ export * from "./leaderboardEntry";
 export * from "./lesson";
 export * from "./lessonQuestion";
 export * from "./lessonQuestionType";
+export * from "./listQuestionsParams";
 export * from "./loginBody";
 export * from "./matchPair";
 export * from "./openaiConversation";
@@ -38,6 +43,8 @@ export * from "./openaiError";
 export * from "./openaiMessage";
 export * from "./purchaseAnimalBody";
 export * from "./purchaseAnimalResponse";
+export * from "./questionListResponse";
+export * from "./questionStat";
 export * from "./registerBody";
 export * from "./respondFriendRequestBody";
 export * from "./respondFriendRequestBodyStatus";
@@ -46,6 +53,8 @@ export * from "./searchUsersParams";
 export * from "./sendFriendRequestBody";
 export * from "./sendOpenaiMessageBody";
 export * from "./sendOpenaiVoiceMessageBody";
+export * from "./storedQuestion";
+export * from "./storedQuestionQuestionData";
 export * from "./streakResponse";
 export * from "./subjectProgress";
 export * from "./successResponse";
@@ -54,6 +63,8 @@ export * from "./transcribeResponse";
 export * from "./tTSBody";
 export * from "./tTSBodyVoice";
 export * from "./tTSResponse";
+export * from "./updateQuestionBody";
+export * from "./updateQuestionBodyQuestionData";
 export * from "./updateUserBody";
 export * from "./user";
 export * from "./userSearchResult";

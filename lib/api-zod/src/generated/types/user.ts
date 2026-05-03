@@ -15,5 +15,6 @@ export interface User {
   lastActivityDate: string | null;
   lastGiftDate: string | null;
   avatarData: string | null;
+  isAdmin: boolean;
   createdAt: Date;
 }
