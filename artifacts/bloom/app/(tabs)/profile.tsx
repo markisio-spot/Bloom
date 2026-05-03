@@ -35,50 +35,47 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { CartoonAvatar, CartoonAvatarHead, DEFAULT_AVATAR, type AvatarData } from "@/components/CartoonAvatar";
+import {
+  SeedlingAvatar,
+  SeedlingAvatarHead,
+  DEFAULT_SEEDLING,
+  getStage,
+  type SeedlingData,
+} from "@/components/SeedlingAvatar";
 import CoinIcon from "@/components/CoinIcon";
 
-const SKIN_TONES = ["#FDDBB4", "#F5C5A3", "#E8A87C", "#C68642", "#8D5524", "#4A2912"];
-const HAIR_COLORS = ["#1B3A6B", "#4A2912", "#8B4513", "#D4AC2B", "#F5C518", "#E0E0E0", "#FF6B9D", "#6C63FF"];
-const HAIR_STYLES = [
-  { key: "short_spiky", label: "Spiky" },
-  { key: "long_straight", label: "Long" },
-  { key: "twin_tails", label: "Twin Tails" },
-  { key: "bob", label: "Bob" },
-  { key: "high_ponytail", label: "Ponytail" },
-  { key: "messy_bangs", label: "Messy" },
-  { key: "side_braid", label: "Braid" },
-];
-const EYE_COLORS = ["#1B3A6B", "#4A2912", "#22C55E", "#3B82F6", "#8B5CF6", "#EF4444", "#F59E0B"];
 const EXPRESSIONS = [
-  { key: "happy", label: "😊 Happy" },
-  { key: "cool", label: "😎 Cool" },
-  { key: "studious", label: "🤓 Studious" },
-  { key: "excited", label: "🤩 Excited" },
-  { key: "calm", label: "😌 Calm" },
+  { key: "happy",      label: "😊 Happy" },
+  { key: "cool",       label: "😎 Cool" },
+  { key: "studious",   label: "🤓 Studious" },
+  { key: "excited",    label: "🤩 Excited" },
+  { key: "calm",       label: "😌 Calm" },
   { key: "determined", label: "😤 Determined" },
 ];
-const CLOTHING_COLORS = [
-  "#1B3A6B", "#4F46E5", "#0891B2", "#7C3AED",
-  "#DC2626", "#EA580C", "#16A34A", "#0D9488",
-  "#DB2777", "#9333EA", "#374151", "#B45309",
-  "#F5C518", "#EC4899", "#6366F1", "#059669",
+
+const PETAL_COLORS = [
+  "#F5C518", "#EF4444", "#EC4899", "#8B5CF6",
+  "#3B82F6", "#22C55E", "#F97316", "#06B6D4",
 ];
 
-const CLOTHING_TYPE_TO_COLOR: Record<string, string> = {
-  uniform: "#1B3A6B", casual: "#4F46E5", sporty: "#0891B2",
-  formal: "#374151", creative: "#7C3AED", hoodie: "#B45309",
+const STAGE_INFO: Record<number, { name: string; emoji: string; nextCoins: number | null; desc: string }> = {
+  1: { name: "Sprout",     emoji: "🌱", nextCoins: 100,  desc: "Just getting started!" },
+  2: { name: "Seedling",   emoji: "🌿", nextCoins: 500,  desc: "Growing nicely!" },
+  3: { name: "Blossom",    emoji: "🌸", nextCoins: 2000, desc: "Almost in full bloom!" },
+  4: { name: "Full Bloom", emoji: "🌻", nextCoins: null, desc: "You've reached full bloom!" },
 };
 
-function parseAvatar(raw: string | null | undefined): AvatarData {
-  if (!raw) return DEFAULT_AVATAR;
+const STAGE_THRESHOLDS = [0, 100, 500, 2000];
+
+function parseSeedling(raw: string | null | undefined): SeedlingData {
+  if (!raw) return DEFAULT_SEEDLING;
   try {
-    const parsed = JSON.parse(raw) as Partial<AvatarData> & { clothing?: string };
-    const clothingColor = parsed.clothingColor ??
-      (parsed.clothing ? (CLOTHING_TYPE_TO_COLOR[parsed.clothing] ?? "#1B3A6B") : "#1B3A6B");
-    return { ...DEFAULT_AVATAR, ...parsed, clothingColor };
-  }
-  catch { return DEFAULT_AVATAR; }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      expression: typeof parsed.expression === "string" ? parsed.expression : DEFAULT_SEEDLING.expression,
+      petalColor: typeof parsed.petalColor === "string" ? parsed.petalColor : DEFAULT_SEEDLING.petalColor,
+    };
+  } catch { return DEFAULT_SEEDLING; }
 }
 
 export default function ProfileScreen() {
@@ -89,7 +86,7 @@ export default function ProfileScreen() {
 
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
-  const [avatar, setAvatar] = useState<AvatarData>(DEFAULT_AVATAR);
+  const [seedling, setSeedling] = useState<SeedlingData>(DEFAULT_SEEDLING);
   const [giftMessage, setGiftMessage] = useState("");
   const [friendsTab, setFriendsTab] = useState<"friends" | "requests">("friends");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -127,7 +124,12 @@ export default function ProfileScreen() {
     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetFriendsQueryKey() }) },
   });
   const respondMutation = useRespondToFriendRequest({
-    mutation: { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getGetFriendsQueryKey() }); queryClient.invalidateQueries({ queryKey: getGetFriendRequestsQueryKey() }); } },
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetFriendsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetFriendRequestsQueryKey() });
+      },
+    },
   });
   const removeFriendMutation = useRemoveFriend({
     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetFriendsQueryKey() }) },
@@ -135,13 +137,16 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (me?.avatarData) {
-      try { setAvatar({ ...DEFAULT_AVATAR, ...(JSON.parse(me.avatarData) as Partial<AvatarData>) }); }
-      catch {}
+      try { setSeedling(parseSeedling(me.avatarData)); } catch {}
     }
   }, [me?.avatarData]);
 
-  const handleSaveAvatar = () => updateMeMutation.mutate({ data: { avatarData: JSON.stringify(avatar) } });
-  const handleSaveName = () => { if (!newName.trim()) return; updateMeMutation.mutate({ data: { displayName: newName.trim() } }); };
+  const handleSaveAvatar = () =>
+    updateMeMutation.mutate({ data: { avatarData: JSON.stringify(seedling) } });
+  const handleSaveName = () => {
+    if (!newName.trim()) return;
+    updateMeMutation.mutate({ data: { displayName: newName.trim() } });
+  };
 
   const displayUser = me ?? authUser;
   if (isLoading && !displayUser) {
@@ -152,9 +157,18 @@ export default function ProfileScreen() {
     );
   }
 
+  const coins = displayUser?.coins ?? 0;
+  const stage = getStage(coins);
+  const stageInfo = STAGE_INFO[stage]!;
   const today = new Date().toISOString().slice(0, 7);
   const canClaimGift = !displayUser?.lastGiftDate || !displayUser.lastGiftDate.startsWith(today);
   const pendingCount = (friendRequests as Array<{ friendshipId: number }>).length;
+
+  const currentThreshold = STAGE_THRESHOLDS[stage - 1] ?? 0;
+  const nextThreshold = stageInfo.nextCoins;
+  const stageProgress = nextThreshold
+    ? Math.min((coins - currentThreshold) / (nextThreshold - currentThreshold), 1)
+    : 1;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top"]}>
@@ -163,13 +177,16 @@ export default function ProfileScreen() {
         {/* ── Profile Header ── */}
         <View style={[styles.header, { backgroundColor: colors.primary }]}>
           <View style={styles.headerAvatarWrap}>
-            <CartoonAvatar avatar={avatar} size={80} />
+            <SeedlingAvatar seedling={seedling} size={72} coins={coins} />
           </View>
           <View style={styles.headerInfo}>
             {editingName ? (
               <View style={styles.editNameRow}>
-                <TextInput style={[styles.nameInput, { color: "#fff", borderColor: "rgba(255,255,255,0.4)", fontFamily: "Inter_600SemiBold" }]}
-                  value={newName} onChangeText={setNewName} autoFocus placeholder="Display name" placeholderTextColor="rgba(255,255,255,0.5)" />
+                <TextInput
+                  style={[styles.nameInput, { color: "#fff", borderColor: "rgba(255,255,255,0.4)", fontFamily: "Inter_600SemiBold" }]}
+                  value={newName} onChangeText={setNewName} autoFocus
+                  placeholder="Display name" placeholderTextColor="rgba(255,255,255,0.5)"
+                />
                 <Pressable onPress={handleSaveName} disabled={updateMeMutation.isPending}>
                   <Feather name="check" size={20} color={colors.gold} />
                 </Pressable>
@@ -185,7 +202,7 @@ export default function ProfileScreen() {
             )}
             <Text style={[styles.username, { color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular" }]}>@{displayUser?.username}</Text>
             <View style={styles.statsRow}>
-              <CoinIcon size={16} count={displayUser?.coins ?? 0} textStyle={{ color: colors.gold, fontSize: 14 }} />
+              <CoinIcon size={16} count={coins} textStyle={{ color: colors.gold, fontSize: 14 }} />
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Feather name="zap" size={14} color={colors.gold} />
@@ -219,74 +236,82 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
-        {/* ── Avatar Builder ── */}
+        {/* ── My Sprout ── */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>🎨 Avatar Builder</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>🌱 My Sprout</Text>
 
           <View style={[styles.builderCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
             <View style={styles.cardShadow2} />
-            <View style={styles.avatarPreviewRow}>
-              <CartoonAvatar avatar={avatar} size={88} />
-              <Pressable style={[styles.saveAvatarBtn, { backgroundColor: colors.primary }]}
-                onPress={handleSaveAvatar} disabled={updateMeMutation.isPending}>
-                <Feather name="save" size={16} color="#fff" />
-                <Text style={[styles.saveAvatarText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
-                  {updateMeMutation.isPending ? "Saving..." : "Save Avatar"}
+
+            {/* Preview + Stage info */}
+            <View style={styles.sproutPreviewRow}>
+              <SeedlingAvatar seedling={seedling} size={96} coins={coins} />
+              <View style={styles.stageInfoCol}>
+                <View style={[styles.stageBadge, { backgroundColor: colors.primary + "14", borderColor: colors.primary + "30" }]}>
+                  <Text style={[styles.stageEmoji]}>{stageInfo.emoji}</Text>
+                  <Text style={[styles.stageName, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                    {stageInfo.name}
+                  </Text>
+                </View>
+                <Text style={[styles.stageDesc, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                  {stageInfo.desc}
                 </Text>
-              </Pressable>
-            </View>
-
-            {/* Skin Tone */}
-            <BuilderRow label="Skin Tone">
-              {SKIN_TONES.map((tone) => (
-                <Pressable key={tone} style={[styles.colorDot, { backgroundColor: tone }, avatar.skinTone === tone && styles.colorDotSelected]}
-                  onPress={() => setAvatar({ ...avatar, skinTone: tone })} />
-              ))}
-            </BuilderRow>
-
-            {/* Hair Color */}
-            <BuilderRow label="Hair Color">
-              {HAIR_COLORS.map((clr) => (
-                <Pressable key={clr} style={[styles.colorDot, { backgroundColor: clr }, avatar.hairColor === clr && styles.colorDotSelected]}
-                  onPress={() => setAvatar({ ...avatar, hairColor: clr })} />
-              ))}
-            </BuilderRow>
-
-            {/* Hair Style */}
-            <BuilderRow label="Hair Style">
-              {HAIR_STYLES.map(({ key, label }) => (
-                <Pressable key={key}
-                  style={[styles.optionTag, { backgroundColor: avatar.hairStyle === key ? colors.primary : colors.background, borderColor: avatar.hairStyle === key ? colors.primary : colors.border }]}
-                  onPress={() => setAvatar({ ...avatar, hairStyle: key })}>
-                  <Text style={[styles.tagText, { color: avatar.hairStyle === key ? "#fff" : colors.primary, fontFamily: "Inter_600SemiBold" }]}>{label}</Text>
+                {nextThreshold && (
+                  <View style={styles.stageProgressWrap}>
+                    <View style={[styles.stageProgressBar, { backgroundColor: colors.border }]}>
+                      <View style={[styles.stageProgressFill, { backgroundColor: colors.gold, width: `${stageProgress * 100}%` }]} />
+                    </View>
+                    <Text style={[styles.stageProgressLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                      {coins}/{nextThreshold} coins → {STAGE_INFO[stage + 1]?.emoji}
+                    </Text>
+                  </View>
+                )}
+                {!nextThreshold && (
+                  <Text style={[styles.stageDesc, { color: colors.gold, fontFamily: "Inter_600SemiBold" }]}>
+                    ✨ Max level reached!
+                  </Text>
+                )}
+                <Pressable
+                  style={[styles.saveAvatarBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleSaveAvatar}
+                  disabled={updateMeMutation.isPending}
+                >
+                  <Feather name="save" size={14} color="#fff" />
+                  <Text style={[styles.saveAvatarText, { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+                    {updateMeMutation.isPending ? "Saving..." : "Save"}
+                  </Text>
                 </Pressable>
-              ))}
-            </BuilderRow>
-
-            {/* Eye Color */}
-            <BuilderRow label="Eye Color">
-              {EYE_COLORS.map((clr) => (
-                <Pressable key={clr} style={[styles.colorDot, { backgroundColor: clr }, avatar.eyeColor === clr && styles.colorDotSelected]}
-                  onPress={() => setAvatar({ ...avatar, eyeColor: clr })} />
-              ))}
-            </BuilderRow>
+              </View>
+            </View>
 
             {/* Expression */}
             <BuilderRow label="Expression">
               {EXPRESSIONS.map(({ key, label }) => (
-                <Pressable key={key}
-                  style={[styles.optionTag, { backgroundColor: avatar.expression === key ? colors.primary : colors.background, borderColor: avatar.expression === key ? colors.primary : colors.border }]}
-                  onPress={() => setAvatar({ ...avatar, expression: key })}>
-                  <Text style={[styles.tagText, { color: avatar.expression === key ? "#fff" : colors.primary, fontFamily: "Inter_600SemiBold" }]}>{label}</Text>
+                <Pressable
+                  key={key}
+                  style={[styles.optionTag, {
+                    backgroundColor: seedling.expression === key ? colors.primary : colors.background,
+                    borderColor: seedling.expression === key ? colors.primary : colors.border,
+                  }]}
+                  onPress={() => setSeedling({ ...seedling, expression: key })}
+                >
+                  <Text style={[styles.tagText, {
+                    color: seedling.expression === key ? "#fff" : colors.primary,
+                    fontFamily: "Inter_600SemiBold",
+                  }]}>{label}</Text>
                 </Pressable>
               ))}
             </BuilderRow>
 
-            {/* Clothing Color */}
-            <BuilderRow label="Clothing Color">
-              {CLOTHING_COLORS.map((clr) => (
-                <Pressable key={clr} style={[styles.colorDot, { backgroundColor: clr }, avatar.clothingColor === clr && styles.colorDotSelected]}
-                  onPress={() => setAvatar({ ...avatar, clothingColor: clr })} />
+            {/* Petal / bud color */}
+            <BuilderRow label="Petal Color">
+              {PETAL_COLORS.map((clr) => (
+                <Pressable
+                  key={clr}
+                  style={[styles.colorDot, { backgroundColor: clr },
+                    seedling.petalColor === clr && styles.colorDotSelected]}
+                  onPress={() => setSeedling({ ...seedling, petalColor: clr })}
+                />
               ))}
             </BuilderRow>
           </View>
@@ -302,16 +327,19 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Tab switcher */}
           <View style={[styles.friendsTabs, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Pressable style={[styles.friendsTabBtn, friendsTab === "friends" && { backgroundColor: colors.primary }]}
-              onPress={() => setFriendsTab("friends")}>
+            <Pressable
+              style={[styles.friendsTabBtn, friendsTab === "friends" && { backgroundColor: colors.primary }]}
+              onPress={() => setFriendsTab("friends")}
+            >
               <Text style={[styles.friendsTabText, { color: friendsTab === "friends" ? "#fff" : colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
                 Friends ({(friends as unknown[]).length})
               </Text>
             </Pressable>
-            <Pressable style={[styles.friendsTabBtn, friendsTab === "requests" && { backgroundColor: colors.primary }]}
-              onPress={() => setFriendsTab("requests")}>
+            <Pressable
+              style={[styles.friendsTabBtn, friendsTab === "requests" && { backgroundColor: colors.primary }]}
+              onPress={() => setFriendsTab("requests")}
+            >
               <Text style={[styles.friendsTabText, { color: friendsTab === "requests" ? "#fff" : colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
                 Requests {pendingCount > 0 ? `(${pendingCount})` : ""}
               </Text>
@@ -331,7 +359,7 @@ export default function ProfileScreen() {
                 (friends as Array<{ id: number; displayName: string; username: string; avatarData?: string | null; coins: number; streakCount: number; friendshipId?: number }>).map((f) => (
                   <View key={f.id} style={[styles.friendRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={[styles.friendAvatarClip, { borderColor: colors.primary }]}>
-                      <CartoonAvatarHead avatar={parseAvatar(f.avatarData)} size={44} />
+                      <SeedlingAvatarHead seedling={parseSeedling(f.avatarData)} size={44} coins={f.coins} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.friendName, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>{f.displayName}</Text>
@@ -358,7 +386,7 @@ export default function ProfileScreen() {
                 (friendRequests as Array<{ friendshipId: number; requester?: { id: number; displayName: string; username: string; avatarData?: string | null } }>).map((req) => (
                   <View key={req.friendshipId} style={[styles.friendRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={[styles.friendAvatarClip, { borderColor: colors.primary }]}>
-                      <CartoonAvatarHead avatar={parseAvatar(req.requester?.avatarData)} size={44} />
+                      <SeedlingAvatarHead seedling={parseSeedling(req.requester?.avatarData)} size={44} coins={0} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.friendName, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>{req.requester?.displayName}</Text>
@@ -453,7 +481,7 @@ export default function ProfileScreen() {
             {(searchResults as Array<{ id: number; username: string; displayName: string; avatarData?: string | null }>).map((u) => (
               <View key={u.id} style={[styles.searchResultRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={[styles.friendAvatarClip, { borderColor: colors.primary }]}>
-                  <CartoonAvatarHead avatar={parseAvatar(u.avatarData)} size={44} />
+                  <SeedlingAvatarHead seedling={parseSeedling(u.avatarData)} size={44} coins={0} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.friendName, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>{u.displayName}</Text>
@@ -524,12 +552,24 @@ const styles = StyleSheet.create({
   giftMsgText: { fontSize: 13, flex: 1 },
   section: { paddingHorizontal: 20, marginBottom: 24 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  sectionTitle: { fontSize: 20 },
+  sectionTitle: { fontSize: 20, marginBottom: 14 },
   builderCard: { borderRadius: 20, borderWidth: 2.5, padding: 16, gap: 16, position: "relative", overflow: "hidden" },
   cardShadow2: { position: "absolute", bottom: -4, left: 4, right: -4, height: "100%", borderRadius: 20, backgroundColor: "#1B3A6B", zIndex: -1 },
-  avatarPreviewRow: { flexDirection: "row", alignItems: "center", gap: 20 },
-  saveAvatarBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 },
-  saveAvatarText: { fontSize: 14 },
+  sproutPreviewRow: { flexDirection: "row", alignItems: "flex-start", gap: 16 },
+  stageInfoCol: { flex: 1, gap: 8 },
+  stageBadge: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, alignSelf: "flex-start",
+  },
+  stageEmoji: { fontSize: 16 },
+  stageName: { fontSize: 15 },
+  stageDesc: { fontSize: 12 },
+  stageProgressWrap: { gap: 4 },
+  stageProgressBar: { height: 6, borderRadius: 3, overflow: "hidden" },
+  stageProgressFill: { height: "100%", borderRadius: 3 },
+  stageProgressLabel: { fontSize: 11 },
+  saveAvatarBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, alignSelf: "flex-start" },
+  saveAvatarText: { fontSize: 13 },
   builderRow: { gap: 8 },
   builderLabel: { fontSize: 13 },
   colorRow: { flexDirection: "row", gap: 10, paddingVertical: 2 },

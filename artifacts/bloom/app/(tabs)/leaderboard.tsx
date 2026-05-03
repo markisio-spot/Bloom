@@ -20,7 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import CoinIcon from "@/components/CoinIcon";
-import { CartoonAvatarHead, DEFAULT_AVATAR, type AvatarData } from "@/components/CartoonAvatar";
+import { SeedlingAvatarHead, DEFAULT_SEEDLING, type SeedlingData, getStage } from "@/components/SeedlingAvatar";
 
 interface LeaderboardEntry {
   userId: number;
@@ -32,19 +32,26 @@ interface LeaderboardEntry {
   animals: Array<{ id: number; name: string; emoji: string; rarity: string }>;
 }
 
-function parseAvatar(raw: string | null | undefined): AvatarData {
-  if (!raw) return DEFAULT_AVATAR;
-  try { return { ...DEFAULT_AVATAR, ...(JSON.parse(raw) as Partial<AvatarData>) }; }
-  catch { return DEFAULT_AVATAR; }
+function parseSeedling(raw: string | null | undefined): SeedlingData {
+  if (!raw) return DEFAULT_SEEDLING;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      expression: typeof parsed.expression === "string" ? parsed.expression : DEFAULT_SEEDLING.expression,
+      petalColor: typeof parsed.petalColor === "string" ? parsed.petalColor : DEFAULT_SEEDLING.petalColor,
+    };
+  } catch { return DEFAULT_SEEDLING; }
 }
 
-function AvatarHead({ avatarData, size = 44 }: { avatarData?: string | null; size?: number }) {
+function AvatarHead({ avatarData, coins, size = 44 }: { avatarData?: string | null; coins: number; size?: number }) {
   const colors = useColors();
-  const avatar = parseAvatar(avatarData);
+  const seedling = parseSeedling(avatarData);
+  const stage = getStage(coins);
+  const ringColor = stage === 4 ? "#F5C518" : colors.primary;
   return (
-    <View style={[styles.avatarRing, { width: size, height: size, borderRadius: size / 2, borderColor: colors.primary }]}>
+    <View style={[styles.avatarRing, { width: size, height: size, borderRadius: size / 2, borderColor: ringColor }]}>
       <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden" }}>
-        <CartoonAvatarHead avatar={avatar} size={size} />
+        <SeedlingAvatarHead seedling={seedling} size={size} coins={coins} />
       </View>
     </View>
   );
@@ -91,7 +98,6 @@ function LeaderboardList({ entries, isLoading, refetch, user }: {
             🏆 Top Collectors
           </Text>
           <View style={styles.podiumRow}>
-            {/* Reorder: 2nd, 1st, 3rd */}
             {[topThree[1], topThree[0], topThree[2]].map((entry, displayIdx) => {
               const actualIdx = [1, 0, 2][displayIdx]!;
               if (!entry) return <View key={displayIdx} style={styles.podiumItem} />;
@@ -99,7 +105,7 @@ function LeaderboardList({ entries, isLoading, refetch, user }: {
               return (
                 <View key={entry.userId} style={[styles.podiumItem, actualIdx === 0 && styles.podiumCenter]}>
                   <View style={{ position: "relative" }}>
-                    <AvatarHead avatarData={entry.avatarData} size={podiumSize} />
+                    <AvatarHead avatarData={entry.avatarData} coins={entry.coins} size={podiumSize} />
                     <View style={[styles.rankBadge, { backgroundColor: RANK_COLORS[actualIdx] }]}>
                       <Text style={[styles.rankNum, { fontFamily: "Inter_700Bold" }]}>{actualIdx + 1}</Text>
                     </View>
@@ -137,7 +143,7 @@ function LeaderboardList({ entries, isLoading, refetch, user }: {
             ]}>
               <View style={[styles.entryRowShadow, { backgroundColor: colors.primary, opacity: 0.15 }]} />
               <Text style={[styles.rankText, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>#{rank}</Text>
-              <AvatarHead avatarData={entry.avatarData} size={44} />
+              <AvatarHead avatarData={entry.avatarData} coins={entry.coins} size={44} />
               <View style={styles.entryInfo}>
                 <Text style={[styles.entryName, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
                   {entry.displayName}{isMe ? " 👈" : ""}
@@ -209,7 +215,6 @@ export default function LeaderboardScreen() {
           Ranked by animal collection · Who's on top?
         </Text>
 
-        {/* Tab switcher */}
         <View style={[styles.tabRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Pressable
             style={[styles.tabBtn, tab === "global" && { backgroundColor: colors.primary }]}
