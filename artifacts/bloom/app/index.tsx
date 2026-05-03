@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 52,
     letterSpacing: -1,
+    textAlign: "center",
   },
   tagline: {
     fontSize: 17,
