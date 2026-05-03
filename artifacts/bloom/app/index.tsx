@@ -117,7 +117,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Text style={[styles.appName, { color: colors.gold, fontFamily: "Inter_700Bold" }]}>
-          Bloom
+          Bloom Learning
         </Text>
         <Text style={[styles.tagline, { color: "rgba(255,255,255,0.85)", fontFamily: "Inter_400Regular" }]}>
           Learn. Earn. Collect.{"\n"}Your journey starts here.
