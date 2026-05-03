@@ -209,6 +209,20 @@ export default function LessonScreen() {
   const langSection = params.languageSection ? Number(params.languageSection) : undefined;
 
   useEffect(() => {
+    setLesson(null);
+    setCurrentQ(0);
+    setAnswers({});
+    setSubmitted({});
+    setTextInput("");
+    setMatchSelected(null);
+    setMatchedPairs([]);
+    setPhase("loading");
+    setScore(0);
+    setHintsUsed(new Set());
+    setHintVisible(false);
+    setFinalCoinsEarned(0);
+    setRecordingUri(null);
+    progressAnim.setValue(0);
     generateMutation.mutate({
       data: {
         subject: (params.subject ?? "math") as GenerateLessonBodySubject,
@@ -222,7 +236,7 @@ export default function LessonScreen() {
       pronunciationSoundRef.current?.unloadAsync();
       selfSoundRef.current?.unloadAsync();
     };
-  }, []);
+  }, [params.subject, params.exerciseType, params.level, params.languageSection]);
 
   useEffect(() => {
     if (phase === "audio" && lesson?.audioText) {
